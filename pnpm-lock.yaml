@@ -1,0 +1,31 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .: {}
+
+  apps/web: {}
+
+  packages/contracts: {}
+
+  packages/frontend-api: {}
+
+  packages/resolver-core: {}
+
+  packages/riptide-math: {}
+
+  packages/solver-core: {}
+
+  packages/strategy-sdk: {}
+
+  services/liquidity-mcp: {}
+
+  services/resolver-bot: {}
+
+  services/solver-api: {}
+
+  services/vol-indexer: {}

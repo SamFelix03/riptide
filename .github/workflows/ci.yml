@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  contracts:
+    name: forge build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: Build contracts
+        working-directory: contracts
+        run: forge build
+
+  typescript:
+    name: pnpm build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install
+      - run: pnpm -w build
+
+  reference:
+    name: python unittest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run reference model tests
+        run: python -m unittest discover tools/reference -v
+
+  fork:
+    name: fork smoke test
+    runs-on: ubuntu-latest
+    if: ${{ secrets.RPC_URL_TARGET != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: Run Provenance fork test
+        working-directory: contracts
+        env:
+          RPC_URL_TARGET: ${{ secrets.RPC_URL_TARGET }}
+        run: forge test --match-path test/fork/Provenance.t.sol -vvv

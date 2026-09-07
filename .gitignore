@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Next.js
+.next/
+
+# Turborepo
+.turbo/
+
+# Test & coverage
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+*.lcov
+
+# Foundry / Solidity
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+contracts/lib/**/cache/
+contracts/lib/**/out/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+venv/
+
+# Environment & secrets (keep *.example)
+.env
+.env.local
+.env.*.local
+!.env.example
+!**/.env.example
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs & debug
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Generated test vectors (optional local generation)
+test/vectors/*.json
+
+# Cursor / agent artifacts (local only)
+.cursor/
+agent-transcripts/
