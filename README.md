@@ -7,7 +7,7 @@ A maker ships a single-maker CPMM into Aqua and wraps it with two control layers
 1. **Mechanism 1** — a volatility-indexed fee so expected fee revenue tracks expected LVR.
 2. **Mechanism 2** — a resolver rebalancing auction with Diamond β-retention.
 
-This commit is the Phase 0 workspace bootstrap: empty-but-buildable monorepo, CI, and the core specification set. Product logic lands in later phases.
+Phase 0 stood up the empty-but-buildable monorepo. Phase 1 pins SwapVM, Aqua, and the rest of the build inputs — see [`DEPENDENCY_LOCK.md`](DEPENDENCY_LOCK.md) and [`RESOLUTIONS.md`](RESOLUTIONS.md). Product logic lands in later phases.
 
 ## Specs
 
@@ -18,6 +18,7 @@ Start at [`docs/INDEX.md`](docs/INDEX.md).
 | Tool | Version |
 | --- | --- |
 | Solidity | `0.8.30` |
+| Foundry | `1.2.3-stable` |
 | Node.js | `>=20` (CI uses 22) |
 | pnpm | `9.15.0` |
 | Python | `3.11+` |

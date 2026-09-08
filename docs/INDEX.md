@@ -75,7 +75,8 @@ Root companions (not in `docs/`):
 
 | Document | Owns |
 | --- | --- |
-| [`../DEPENDENCY_LOCK.md`](../DEPENDENCY_LOCK.md) | Pinned Foundry/npm versions, commits, licenses (stub until Phase 1) |
+| [`../DEPENDENCY_LOCK.md`](../DEPENDENCY_LOCK.md) | Pinned Foundry/npm versions, commits, licenses |
+| [`../RESOLUTIONS.md`](../RESOLUTIONS.md) | `[confirm at build]` resolutions from the pinned SwapVM/Aqua commits |
 
 ## Open items (whole project)
 
@@ -85,10 +86,10 @@ Tracked centrally so no single document silently owns an unresolved question:
    the LVR, Diamond, and fee papers were verified directly from the downloaded PDFs
    (title pages + page self-stamps, [`SOURCES.md`](SOURCES.md) §6); the *equations*
    were verified from full text. No residual action.
-2. **Official address/commit pinning.** The Aqua and SwapVM addresses and commit
-   hashes in [`SYSTEM.md`](SYSTEM.md) were captured during research and
-   must be re-verified against the official 1inch deployment manifest before any
-   deployment.
+2. **Official address/commit pinning — resolved.** Aqua registry and AquaSwapVMRouter
+   v1.0.2 addresses and commits are recorded in [`DEPENDENCY_LOCK.md`](../DEPENDENCY_LOCK.md)
+   and [`RESOLUTIONS.md`](../RESOLUTIONS.md) §4, and exercised by
+   `contracts/test/fork/Provenance.t.sol`.
 3. **Fee-curve constant.** The exact constant mapping estimated volatility to
    `feeBps` is a governed/tuned controller parameter, not a claimed universal
    formula; its calibration procedure is in [`LVR_MATH.md`](LVR_MATH.md) §Fee Controller.
