@@ -33,6 +33,9 @@ jobs:
       - name: Volatility oracle tests
         working-directory: contracts
         run: forge test --match-contract RiptideVolatilityOracle -vvv
+      - name: LVR fee provider tests
+        working-directory: contracts
+        run: forge test --match-contract RiptideLvrFeeProvider -vvv
 
   typescript:
     name: pnpm build
