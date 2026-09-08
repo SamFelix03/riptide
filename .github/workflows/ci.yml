@@ -30,6 +30,9 @@ jobs:
       - name: Codec and MakerTraits freeze tests
         working-directory: contracts
         run: forge test --match-contract "RiptideStrategyCodec|MakerTraitsFreeze" -vvv
+      - name: Volatility oracle tests
+        working-directory: contracts
+        run: forge test --match-contract RiptideVolatilityOracle -vvv
 
   typescript:
     name: pnpm build

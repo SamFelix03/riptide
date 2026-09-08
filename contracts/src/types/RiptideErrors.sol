@@ -23,6 +23,7 @@ library RiptideErrors {
     error RiptideStrategyNotActive(bytes32 strategyHash);
     error RiptideDeadlineExpired(uint40 deadline, uint256 timestamp);
     error RiptideUnauthorizedResolver(address caller);
+    error RiptideUnauthorizedObserver(address caller);
     error RiptideReentrantExecution();
 
     // mechanism-2 economic guards
