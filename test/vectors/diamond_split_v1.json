@@ -1,0 +1,203 @@
+{
+  "cases": [
+    {
+      "id": "split_zero",
+      "inputs": {
+        "beta": "950000000000000000",
+        "surplusWad": "0"
+      },
+      "outputs": {
+        "dutchBalanceIn": {
+          "ceiling": "366032341273229501000",
+          "direction": "floor",
+          "floor": "366032341273229501000",
+          "ideal": "366032341273229501000"
+        },
+        "payToResolver": {
+          "ceiling": "0",
+          "direction": "floor",
+          "floor": "0",
+          "ideal": "0"
+        },
+        "retainToLP": {
+          "ceiling": "0",
+          "direction": "floor",
+          "floor": "0",
+          "ideal": "0"
+        },
+        "surplus": {
+          "ceiling": "0",
+          "direction": "floor",
+          "floor": "0",
+          "ideal": "0"
+        }
+      }
+    },
+    {
+      "id": "split_tiny",
+      "inputs": {
+        "beta": "950000000000000000",
+        "surplusWad": "1"
+      },
+      "outputs": {
+        "dutchBalanceIn": {
+          "ceiling": "366032341273229501000",
+          "direction": "floor",
+          "floor": "366032341273229501000",
+          "ideal": "366032341273229501000"
+        },
+        "payToResolver": {
+          "ceiling": "0",
+          "direction": "floor",
+          "floor": "0",
+          "ideal": "0"
+        },
+        "retainToLP": {
+          "ceiling": "1",
+          "direction": "floor",
+          "floor": "1",
+          "ideal": "1"
+        },
+        "surplus": {
+          "ceiling": "1",
+          "direction": "floor",
+          "floor": "1",
+          "ideal": "1"
+        }
+      }
+    },
+    {
+      "id": "split_mid",
+      "inputs": {
+        "beta": "950000000000000000",
+        "surplusWad": "1000000000000000000000"
+      },
+      "outputs": {
+        "dutchBalanceIn": {
+          "ceiling": "366032341273229501000",
+          "direction": "floor",
+          "floor": "366032341273229501000",
+          "ideal": "366032341273229501000"
+        },
+        "payToResolver": {
+          "ceiling": "50000000000000000000",
+          "direction": "floor",
+          "floor": "50000000000000000000",
+          "ideal": "50000000000000000000"
+        },
+        "retainToLP": {
+          "ceiling": "950000000000000000000",
+          "direction": "floor",
+          "floor": "950000000000000000000",
+          "ideal": "950000000000000000000"
+        },
+        "surplus": {
+          "ceiling": "1000000000000000000000",
+          "direction": "floor",
+          "floor": "1000000000000000000000",
+          "ideal": "1000000000000000000000"
+        }
+      }
+    },
+    {
+      "id": "split_large",
+      "inputs": {
+        "beta": "500000000000000000",
+        "surplusWad": "100000000000000000000000"
+      },
+      "outputs": {
+        "dutchBalanceIn": {
+          "ceiling": "366032341273229501000",
+          "direction": "floor",
+          "floor": "366032341273229501000",
+          "ideal": "366032341273229501000"
+        },
+        "payToResolver": {
+          "ceiling": "50000000000000000000000",
+          "direction": "floor",
+          "floor": "50000000000000000000000",
+          "ideal": "50000000000000000000000"
+        },
+        "retainToLP": {
+          "ceiling": "50000000000000000000000",
+          "direction": "floor",
+          "floor": "50000000000000000000000",
+          "ideal": "50000000000000000000000"
+        },
+        "surplus": {
+          "ceiling": "100000000000000000000000",
+          "direction": "floor",
+          "floor": "100000000000000000000000",
+          "ideal": "100000000000000000000000"
+        }
+      }
+    },
+    {
+      "id": "split_beta_low",
+      "inputs": {
+        "beta": "100000000000000000",
+        "surplusWad": "1000000000000000000000"
+      },
+      "outputs": {
+        "dutchBalanceIn": {
+          "ceiling": "366032341273229501000",
+          "direction": "floor",
+          "floor": "366032341273229501000",
+          "ideal": "366032341273229501000"
+        },
+        "payToResolver": {
+          "ceiling": "900000000000000000000",
+          "direction": "floor",
+          "floor": "900000000000000000000",
+          "ideal": "900000000000000000000"
+        },
+        "retainToLP": {
+          "ceiling": "100000000000000000000",
+          "direction": "floor",
+          "floor": "100000000000000000000",
+          "ideal": "100000000000000000000"
+        },
+        "surplus": {
+          "ceiling": "1000000000000000000000",
+          "direction": "floor",
+          "floor": "1000000000000000000000",
+          "ideal": "1000000000000000000000"
+        }
+      }
+    },
+    {
+      "id": "split_beta_high",
+      "inputs": {
+        "beta": "990000000000000000",
+        "surplusWad": "1000000000000000000000"
+      },
+      "outputs": {
+        "dutchBalanceIn": {
+          "ceiling": "366032341273229501000",
+          "direction": "floor",
+          "floor": "366032341273229501000",
+          "ideal": "366032341273229501000"
+        },
+        "payToResolver": {
+          "ceiling": "10000000000000000000",
+          "direction": "floor",
+          "floor": "10000000000000000000",
+          "ideal": "10000000000000000000"
+        },
+        "retainToLP": {
+          "ceiling": "990000000000000000000",
+          "direction": "floor",
+          "floor": "990000000000000000000",
+          "ideal": "990000000000000000000"
+        },
+        "surplus": {
+          "ceiling": "1000000000000000000000",
+          "direction": "floor",
+          "floor": "1000000000000000000000",
+          "ideal": "1000000000000000000000"
+        }
+      }
+    }
+  ],
+  "version": 1
+}

@@ -61,8 +61,8 @@ Thumbs.db
 npm-debug.log*
 pnpm-debug.log*
 
-# Generated test vectors (optional local generation)
-test/vectors/*.json
+# Local vector regenerations (committed v1 files are tracked)
+test/vectors/*.local.json
 
 # Cursor / agent artifacts (local only)
 .cursor/

@@ -1,5 +1,6 @@
 [profile.default]
 src = "src"
+test = "test"
 out = "out"
 libs = ["lib"]
 solc_version = "0.8.30"
@@ -7,7 +8,13 @@ optimizer = true
 optimizer_runs = 700
 via_ir = true
 evm_version = "cancun"
-fs_permissions = [{ access = "read", path = "./" }]
+fs_permissions = [
+  { access = "read", path = "../test/vectors" },
+  { access = "read", path = "./" }
+]
+
+[profile.default.fuzz]
+runs = 10000
 
 [profile.default.optimizer_details]
 yul = true
@@ -27,6 +34,9 @@ optimizer = true
 optimizer_runs = 700
 via_ir = true
 evm_version = "cancun"
+
+[profile.ci.fuzz]
+runs = 10000
 
 [profile.ci.optimizer_details]
 yul = true

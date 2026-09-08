@@ -18,6 +18,15 @@ jobs:
       - name: Build contracts
         working-directory: contracts
         run: forge build
+      - name: Types compile tests
+        working-directory: contracts
+        run: forge test --match-contract TypesCompile -vvv
+      - name: Differential vector tests
+        working-directory: contracts
+        run: forge test --match-contract Differential -vvv
+      - name: Math fuzz tests
+        working-directory: contracts
+        run: forge test --match-contract MathFuzz -vvv
 
   typescript:
     name: pnpm build
@@ -33,6 +42,7 @@ jobs:
           cache: pnpm
       - run: pnpm install
       - run: pnpm -w build
+      - run: pnpm --filter @riptide/riptide-math test
 
   reference:
     name: python unittest
@@ -43,7 +53,9 @@ jobs:
         with:
           python-version: "3.11"
       - name: Run reference model tests
-        run: python -m unittest discover tools/reference -v
+        run: python -m unittest tools.reference.test_reference_math -v
+      - name: Verify committed vectors
+        run: python -m tools.reference.generate_vectors --check
 
   fork:
     name: fork smoke test

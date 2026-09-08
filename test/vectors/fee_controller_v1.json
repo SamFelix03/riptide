@@ -1,0 +1,76 @@
+{
+  "cases": [
+    {
+      "id": "fee_target_mid",
+      "inputs": {
+        "feeMax": "500000",
+        "feeMin": "30000",
+        "lambdaQ": "100000000000000000",
+        "sigmaWad": "300000000000000000"
+      },
+      "outputs": {
+        "feeTarget": {
+          "ceiling": "500000",
+          "direction": "floor",
+          "floor": "500000",
+          "ideal": "500000"
+        }
+      }
+    },
+    {
+      "id": "pi_step_up",
+      "inputs": {
+        "feeMax": "500000",
+        "feeMin": "30000",
+        "feeReportedPrev": "100000",
+        "feeTarget": "500000",
+        "iMax": "1000000000000000000",
+        "integralPrev": "0",
+        "ki": "100000000000000000",
+        "kp": "500000000000000000"
+      },
+      "outputs": {
+        "feeReported": {
+          "ceiling": "340000",
+          "direction": "floor",
+          "floor": "340000",
+          "ideal": "340000"
+        },
+        "integral": {
+          "ceiling": "40000",
+          "direction": "floor",
+          "floor": "40000",
+          "ideal": "40000"
+        }
+      }
+    },
+    {
+      "id": "pi_anti_windup",
+      "inputs": {
+        "feeMax": "500000",
+        "feeMin": "30000",
+        "feeReportedPrev": "30000",
+        "feeTarget": "500000",
+        "iMax": "1000000000000000000",
+        "integralPrev": "0",
+        "ki": "100000000000000000",
+        "kp": "500000000000000000"
+      },
+      "outputs": {
+        "feeReported": {
+          "ceiling": "312000",
+          "direction": "floor",
+          "floor": "312000",
+          "ideal": "312000"
+        },
+        "integral": {
+          "ceiling": "47000",
+          "direction": "floor",
+          "floor": "47000",
+          "ideal": "47000"
+        }
+      }
+    }
+  ],
+  "version": 1
+}

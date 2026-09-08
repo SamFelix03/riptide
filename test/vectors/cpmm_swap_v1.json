@@ -1,0 +1,233 @@
+{
+  "cases": [
+    {
+      "id": "cpmm_exact_in_small",
+      "inputs": {
+        "amountIn": "100000000000000000",
+        "feeBps": "30000",
+        "kind": "exact_in",
+        "reserveIn": "1000000000000000000000",
+        "reserveOut": "2000000000000000000000"
+      },
+      "outputs": {
+        "amountIn": {
+          "ceiling": "100000000000000000",
+          "direction": "ceiling",
+          "floor": "100000000000000000",
+          "ideal": "100000000000000000"
+        },
+        "amountOut": {
+          "ceiling": "199380121801856354",
+          "direction": "floor",
+          "floor": "199380121801856354",
+          "ideal": "199380121801856354"
+        },
+        "lvrCpmm": {
+          "ceiling": "15000000000000000000",
+          "direction": "floor",
+          "floor": "15000000000000000000",
+          "ideal": "15000000000000000000"
+        },
+        "lvrGeneral": {
+          "ceiling": "15000000000000000000",
+          "direction": "floor",
+          "floor": "15000000000000000000",
+          "ideal": "15000000000000000000"
+        }
+      }
+    },
+    {
+      "id": "cpmm_exact_in_mid",
+      "inputs": {
+        "amountIn": "1000000000000000000000",
+        "feeBps": "50000",
+        "kind": "exact_in",
+        "reserveIn": "5000000000000000000000",
+        "reserveOut": "5000000000000000000000"
+      },
+      "outputs": {
+        "amountIn": {
+          "ceiling": "1000000000000000000000",
+          "direction": "ceiling",
+          "floor": "1000000000000000000000",
+          "ideal": "1000000000000000000000"
+        },
+        "amountOut": {
+          "ceiling": "829858215179316096747",
+          "direction": "floor",
+          "floor": "829858215179316096747",
+          "ideal": "829858215179316096747"
+        },
+        "lvrCpmm": {
+          "ceiling": "50000000000000000000",
+          "direction": "floor",
+          "floor": "50000000000000000000",
+          "ideal": "50000000000000000000"
+        },
+        "lvrGeneral": {
+          "ceiling": "50000000000000000000",
+          "direction": "floor",
+          "floor": "50000000000000000000",
+          "ideal": "50000000000000000000"
+        }
+      }
+    },
+    {
+      "id": "cpmm_exact_in_large",
+      "inputs": {
+        "amountIn": "10000000000000000000000",
+        "feeBps": "100000",
+        "kind": "exact_in",
+        "reserveIn": "100000000000000000000000",
+        "reserveOut": "100000000000000000000000"
+      },
+      "outputs": {
+        "amountIn": {
+          "ceiling": "10000000000000000000000",
+          "direction": "ceiling",
+          "floor": "10000000000000000000000",
+          "ideal": "10000000000000000000000"
+        },
+        "amountOut": {
+          "ceiling": "9008189262966333030027",
+          "direction": "floor",
+          "floor": "9008189262966333030027",
+          "ideal": "9008189262966333030027"
+        },
+        "lvrCpmm": {
+          "ceiling": "1000000000000000000000",
+          "direction": "floor",
+          "floor": "1000000000000000000000",
+          "ideal": "1000000000000000000000"
+        },
+        "lvrGeneral": {
+          "ceiling": "1000000000000000000000",
+          "direction": "floor",
+          "floor": "1000000000000000000000",
+          "ideal": "1000000000000000000000"
+        }
+      }
+    },
+    {
+      "id": "cpmm_exact_in_near_empty",
+      "inputs": {
+        "amountIn": "100000000000000000",
+        "feeBps": "0",
+        "kind": "exact_in",
+        "reserveIn": "1000000000000000000000",
+        "reserveOut": "1000000000000000000"
+      },
+      "outputs": {
+        "amountIn": {
+          "ceiling": "100000000000000000",
+          "direction": "ceiling",
+          "floor": "100000000000000000",
+          "ideal": "100000000000000000"
+        },
+        "amountOut": {
+          "ceiling": "99990000999900",
+          "direction": "floor",
+          "floor": "99990000999900",
+          "ideal": "99990000999900"
+        },
+        "lvrCpmm": {
+          "ceiling": "5005000000000000000",
+          "direction": "floor",
+          "floor": "5005000000000000000",
+          "ideal": "5005000000000000000"
+        },
+        "lvrGeneral": {
+          "ceiling": "5005000000000000000",
+          "direction": "floor",
+          "floor": "5005000000000000000",
+          "ideal": "5005000000000000000"
+        }
+      }
+    },
+    {
+      "id": "cpmm_exact_out_small",
+      "inputs": {
+        "amountOut": "50000000000000000",
+        "feeBps": "30000",
+        "kind": "exact_out",
+        "reserveIn": "1000000000000000000000",
+        "reserveOut": "2000000000000000000000"
+      },
+      "outputs": {
+        "amountIn": {
+          "ceiling": "25075852573345428",
+          "direction": "ceiling",
+          "floor": "25075852573345428",
+          "ideal": "25075852573345428"
+        },
+        "amountOut": {
+          "ceiling": "50000000000000000",
+          "direction": "floor",
+          "floor": "50000000000000000",
+          "ideal": "50000000000000000"
+        }
+      }
+    },
+    {
+      "id": "cpmm_exact_out_mid",
+      "inputs": {
+        "amountOut": "500000000000000000000",
+        "feeBps": "50000",
+        "kind": "exact_out",
+        "reserveIn": "5000000000000000000000",
+        "reserveOut": "5000000000000000000000"
+      },
+      "outputs": {
+        "amountIn": {
+          "ceiling": "558347292015633724177",
+          "direction": "ceiling",
+          "floor": "558347292015633724177",
+          "ideal": "558347292015633724177"
+        },
+        "amountOut": {
+          "ceiling": "500000000000000000000",
+          "direction": "floor",
+          "floor": "500000000000000000000",
+          "ideal": "500000000000000000000"
+        }
+      }
+    },
+    {
+      "id": "cpmm_exact_in_round_edge",
+      "inputs": {
+        "amountIn": "333333333333333333",
+        "feeBps": "3333333",
+        "kind": "exact_in",
+        "reserveIn": "1000000000000000000001",
+        "reserveOut": "1000000000000000000001"
+      },
+      "outputs": {
+        "amountIn": {
+          "ceiling": "333333333333333333",
+          "direction": "ceiling",
+          "floor": "333333333333333333",
+          "ideal": "333333333333333333"
+        },
+        "amountOut": {
+          "ceiling": "222172861583846113",
+          "direction": "floor",
+          "floor": "222172861583846113",
+          "ideal": "222172861583846113"
+        },
+        "lvrCpmm": {
+          "ceiling": "10000000000000000000",
+          "direction": "floor",
+          "floor": "10000000000000000000",
+          "ideal": "10000000000000000000"
+        },
+        "lvrGeneral": {
+          "ceiling": "10000000000000000000",
+          "direction": "floor",
+          "floor": "10000000000000000000",
+          "ideal": "10000000000000000000"
+        }
+      }
+    }
+  ],
+  "version": 1
+}

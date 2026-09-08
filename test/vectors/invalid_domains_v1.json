@@ -1,0 +1,60 @@
+{
+  "cases": [
+    {
+      "expect": "DomainError",
+      "fn": "diamond_split",
+      "id": "neg_surplus",
+      "inputs": {
+        "beta": "950000000000000000",
+        "surplusWad": "-1"
+      }
+    },
+    {
+      "expect": "DomainError",
+      "fn": "diamond_split",
+      "id": "beta_zero",
+      "inputs": {
+        "beta": "0",
+        "surplusWad": "1000"
+      }
+    },
+    {
+      "expect": "DomainError",
+      "fn": "diamond_split",
+      "id": "beta_one",
+      "inputs": {
+        "beta": "1000000000000000000",
+        "surplusWad": "1000"
+      }
+    },
+    {
+      "expect": "DomainError",
+      "fn": "ln_wad",
+      "id": "ln_zero",
+      "inputs": {
+        "x": "0"
+      }
+    },
+    {
+      "expect": "DomainError",
+      "fn": "pow_wad",
+      "id": "pow_bad_base",
+      "inputs": {
+        "base": "0",
+        "exponent": "1000000000000000000"
+      }
+    },
+    {
+      "expect": "DomainError",
+      "fn": "cpmm_exact_in",
+      "id": "cpmm_empty_pool",
+      "inputs": {
+        "amountIn": "1",
+        "feeBps": "0",
+        "reserveIn": "0",
+        "reserveOut": "1000"
+      }
+    }
+  ],
+  "version": 1
+}

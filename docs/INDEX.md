@@ -77,6 +77,7 @@ Root companions (not in `docs/`):
 | --- | --- |
 | [`../DEPENDENCY_LOCK.md`](../DEPENDENCY_LOCK.md) | Pinned Foundry/npm versions, commits, licenses |
 | [`../RESOLUTIONS.md`](../RESOLUTIONS.md) | `[confirm at build]` resolutions from the pinned SwapVM/Aqua commits |
+| [`../LN_EXP_BOUNDS.md`](../LN_EXP_BOUNDS.md) | Solady ln/exp/pow domains used on-chain |
 
 ## Open items (whole project)
 
