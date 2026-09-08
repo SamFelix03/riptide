@@ -92,13 +92,15 @@ is slice index 4, resolved through `_getDataSlice` / `_getOffset`). The strategy
 must reproduce this packing from `MakerTraitsLib.build`, not the obsolete 208-bit shift
 from the pre-v1.0.2 docs.
 
-Frozen vector inputs:
+Frozen vector inputs (Phase 1):
 
 ```solidity
 USE_AQUA_TRAIT = 1 << 254;
 ORDER_DATA_SLICES_INDEXES_BIT_OFFSET = 160;
-// No PROGRAM_OFFSET_SHIFT in v1.0.2 — use MakerTraitsLib.build slice encoding
 ```
+
+**Phase 4 freeze:** `RiptideMakerTraits` uses `PAYLOAD_LENGTH << 208`. That is the Program
+slice index (bits 208–223 = `160 + (3 << 4)`), not an obsolete pre-v1.0.2 shift. See §8.
 
 ---
 
@@ -151,3 +153,17 @@ Without a third-party lockfile to copy, versions were reconciled against pinned 
 | Node | `>=20` (CI: 22) |
 | pnpm | `9.15.0` |
 | Python | `3.11+` |
+
+---
+
+## 8. `RiptideMakerTraits.PROGRAM_OFFSET_SHIFT = 208` — correct for slice index 3
+
+`RiptideMakerTraits.sol` uses `PAYLOAD_LENGTH << 208`. This matches the Program slice
+index `MakerTraitsLib` packs at bits 208–223 when hooks are empty and the RIPTIDE
+payload is a prefix of `order.data`. `MakerTraitsFreeze` proves:
+
+- `USE_AQUA_TRAIT = 1 << 254`
+- `ORDER_DATA_SLICES_INDEXES_BIT_OFFSET + (3 << 4) = 208`
+- `RiptideMakerTraits.buildOrder` yields a program slice that excludes the 226-byte payload
+
+Do not change the 208-bit shift — it would invalidate every live order hash.

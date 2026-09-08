@@ -12,6 +12,7 @@ library RiptideErrors {
     error RiptideInvalidEncodingMagic(bytes4 actual, bytes4 expected);
     error RiptideUnsupportedEncodingVersion(uint8 actual, uint8 supported);
     error RiptideInvalidFeeBounds(uint24 feeMin, uint24 feeMax);
+    error RiptideInvalidLambda(uint64 lambda);
     error RiptideInvalidBeta(uint64 beta);
     error RiptideInvalidDecay(uint64 decay);
     error RiptideInvalidSigmaBounds(uint64 sigmaMin, uint64 sigmaMax);

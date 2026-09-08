@@ -38,6 +38,13 @@ importers:
       viem:
         specifier: 2.48.4
         version: 2.48.4(typescript@5.9.3)
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.5
+        version: 3.2.7
 
   services/liquidity-mcp: {}
 

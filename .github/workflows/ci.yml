@@ -27,6 +27,9 @@ jobs:
       - name: Math fuzz tests
         working-directory: contracts
         run: forge test --match-contract MathFuzz -vvv
+      - name: Codec and MakerTraits freeze tests
+        working-directory: contracts
+        run: forge test --match-contract "RiptideStrategyCodec|MakerTraitsFreeze" -vvv
 
   typescript:
     name: pnpm build
@@ -43,6 +46,7 @@ jobs:
       - run: pnpm install
       - run: pnpm -w build
       - run: pnpm --filter @riptide/riptide-math test
+      - run: pnpm --filter @riptide/strategy-sdk test
 
   reference:
     name: python unittest
@@ -52,10 +56,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Install keccak for payload vectors
+        run: pip install pycryptodome
       - name: Run reference model tests
         run: python -m unittest tools.reference.test_reference_math -v
       - name: Verify committed vectors
         run: python -m tools.reference.generate_vectors --check
+      - name: Verify committed payload vectors
+        run: python -m tools.reference.generate_payload_vectors --check
 
   fork:
     name: fork smoke test
