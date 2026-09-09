@@ -185,4 +185,9 @@ abstract contract RiptideForkBase is Test {
             swapRouter.riptideSwap(order, address(tokenQuote), address(tokenBase), amountIn, _swapTakerData(true));
         vm.stopPrank();
     }
+
+    function _feeReported() internal view returns (uint24) {
+        (uint24 fee,) = provider.controllerState(strategyKey);
+        return fee;
+    }
 }

@@ -45,6 +45,9 @@ jobs:
       - name: Mechanism 1/2 and SwapVM invariant tests
         working-directory: contracts
         run: forge test --match-contract "Mechanism1|Mechanism2|SwapVMInvariants|Reentrancy" -vvv
+      - name: Loop (Gate 6) tests
+        working-directory: contracts
+        run: forge test --match-contract LoopTest -vvv
 
   typescript:
     name: pnpm build
