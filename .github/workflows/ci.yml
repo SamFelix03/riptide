@@ -36,6 +36,9 @@ jobs:
       - name: LVR fee provider tests
         working-directory: contracts
         run: forge test --match-contract RiptideLvrFeeProvider -vvv
+      - name: Rebalance kernel tests
+        working-directory: contracts
+        run: forge test --match-contract RiptideRebalanceKernel -vvv
 
   typescript:
     name: pnpm build
