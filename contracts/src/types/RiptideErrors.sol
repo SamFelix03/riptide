@@ -51,4 +51,5 @@ library RiptideErrors {
     error RiptideSlippageExceeded(uint256 actual, uint256 limit);
     error RiptideTooManyFills(uint256 actual, uint256 maximum);
     error RiptideDuplicateStrategy(bytes32 strategyKey);
+    error RiptideSwapFailed();
 }

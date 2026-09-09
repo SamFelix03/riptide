@@ -1,0 +1,188 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.30;
+
+import { Test } from "forge-std/Test.sol";
+import { TokenMock } from "@1inch/solidity-utils/contracts/mocks/TokenMock.sol";
+import { Aqua } from "@1inch/aqua/src/Aqua.sol";
+
+import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
+import { TakerTraitsLib } from "@1inch/swap-vm/libs/TakerTraits.sol";
+
+import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
+import { RiptideRebalanceKernel } from "../../src/core/RiptideRebalanceKernel.sol";
+import { RiptideVolatilityOracle } from "../../src/oracle/RiptideVolatilityOracle.sol";
+import { RiptideLvrFeeProvider } from "../../src/fees/RiptideLvrFeeProvider.sol";
+import { RiptideSwapVMRouter } from "../../src/core/RiptideSwapVMRouter.sol";
+import { RiptideRebalanceRouter } from "../../src/core/RiptideRebalanceRouter.sol";
+import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
+import { RiptideConstants } from "../../src/core/RiptideConstants.sol";
+import { MockChainlinkAggregator } from "../mocks/MockChainlinkAggregator.sol";
+import { RiptideSystemDeployer } from "./RiptideSystemDeployer.sol";
+
+/// @notice Shared deploy + ship helpers for integration tests against official Aqua.
+abstract contract RiptideForkBase is Test {
+    Aqua internal aqua;
+    TokenMock internal tokenBase;
+    TokenMock internal tokenQuote;
+    RiptideRebalanceKernel internal kernel;
+    RiptideVolatilityOracle internal oracle;
+    RiptideLvrFeeProvider internal provider;
+    RiptideSwapVMRouter internal swapRouter;
+    RiptideRebalanceRouter internal rebalanceRouter;
+    MockChainlinkAggregator internal feed;
+
+    address internal maker = makeAddr("maker");
+    address internal taker = makeAddr("taker");
+    address internal resolver = makeAddr("resolver");
+
+    bytes32 internal strategyKey;
+    bytes32 internal orderHash;
+    RiptideTypes.Strategy internal strategy;
+
+    function _deploySystem() internal {
+        aqua = new Aqua();
+        tokenBase = new TokenMock("Base", "BASE");
+        tokenQuote = new TokenMock("Quote", "QUOTE");
+
+        RiptideSystemDeployer deployer = new RiptideSystemDeployer();
+        RiptideSystemDeployer.System memory sys = deployer.deploy(address(aqua), address(this));
+        kernel = sys.kernel;
+        oracle = sys.oracle;
+        provider = sys.provider;
+        swapRouter = sys.swapRouter;
+        rebalanceRouter = sys.rebalanceRouter;
+
+        feed = new MockChainlinkAggregator();
+        feed.setRound(2_000e8, block.timestamp);
+        strategy = _defaultStrategy();
+    }
+
+    function _defaultStrategy() internal view returns (RiptideTypes.Strategy memory s) {
+        s = RiptideTypes.Strategy({
+            maker: maker,
+            baseToken: address(tokenBase),
+            quoteToken: address(tokenQuote),
+            reserveBaseWad: 100e18,
+            reserveQuoteWad: 200_000e18,
+            fee: RiptideTypes.FeePolicy({
+                feeMin: 30_000,
+                feeMax: 500_000,
+                lambda: 100_000_000_000_000_000,
+                kp: 500_000_000_000_000_000,
+                ki: 100_000_000_000_000_000,
+                iMax: 1_000_000_000_000_000_000,
+                sigmaMin: 10_000_000_000_000_000,
+                sigmaMax: 1_000_000_000_000_000_000
+            }),
+            auction: RiptideTypes.AuctionPolicy({
+                beta: 950_000_000_000_000_000,
+                duration: 3600,
+                decay: 990_000_000_000_000_000,
+                antiSandwichPeriod: 300
+            }),
+            oracle: RiptideTypes.OracleConfig({ feed: address(feed), decimals: 8, maxStaleness: 3600 }),
+            feeProvider: address(0),
+            salt: bytes32(uint256(1))
+        });
+        s.feeProvider = address(provider);
+    }
+
+    function _shipAndRegister() internal returns (ISwapVM.Order memory order) {
+        strategy.feeProvider = address(provider);
+        order = swapRouter.buildSwapOrder(maker, strategy, RiptideConstants.SWAP_ORDER_DEADLINE);
+        orderHash = swapRouter.hash(order);
+        strategyKey = RiptideStrategyCodec.runtimeStrategyKey(maker, strategy.salt);
+
+        tokenBase.mint(maker, 1000e18);
+        tokenQuote.mint(maker, 2_000_000e18);
+        vm.startPrank(maker);
+        tokenBase.approve(address(aqua), type(uint256).max);
+        tokenQuote.approve(address(aqua), type(uint256).max);
+        aqua.ship(address(swapRouter), abi.encode(order), _tokens(), _amounts(100e18, 200_000e18));
+        swapRouter.registerStrategy(strategyKey, orderHash, strategy, maker);
+        vm.stopPrank();
+    }
+
+    function _tokens() internal view returns (address[] memory tokens) {
+        tokens = new address[](2);
+        tokens[0] = address(tokenBase);
+        tokens[1] = address(tokenQuote);
+    }
+
+    function _amounts(uint256 baseAmt, uint256 quoteAmt) internal pure returns (uint256[] memory amounts) {
+        amounts = new uint256[](2);
+        amounts[0] = baseAmt;
+        amounts[1] = quoteAmt;
+    }
+
+    function _quoteTakerData(bool exactIn) internal view returns (bytes memory) {
+        return TakerTraitsLib.build(
+            TakerTraitsLib.Args({
+                taker: taker,
+                isExactIn: exactIn,
+                shouldUnwrapWeth: false,
+                isStrictThresholdAmount: false,
+                isFirstTransferFromTaker: false,
+                useTransferFromAndAquaPush: false,
+                threshold: "",
+                to: address(0),
+                deadline: 0,
+                hasPreTransferInCallback: false,
+                hasPreTransferOutCallback: false,
+                preTransferInHookData: "",
+                postTransferInHookData: "",
+                preTransferOutHookData: "",
+                postTransferOutHookData: "",
+                preTransferInCallbackData: "",
+                preTransferOutCallbackData: "",
+                instructionsArgs: "",
+                signature: ""
+            })
+        );
+    }
+
+    function _swapTakerData(bool exactIn) internal view returns (bytes memory) {
+        return TakerTraitsLib.build(
+            TakerTraitsLib.Args({
+                taker: taker,
+                isExactIn: exactIn,
+                shouldUnwrapWeth: false,
+                isStrictThresholdAmount: false,
+                isFirstTransferFromTaker: true,
+                useTransferFromAndAquaPush: true,
+                threshold: "",
+                to: address(0),
+                deadline: 0,
+                hasPreTransferInCallback: false,
+                hasPreTransferOutCallback: false,
+                preTransferInHookData: "",
+                postTransferInHookData: "",
+                preTransferOutHookData: "",
+                postTransferOutHookData: "",
+                preTransferInCallbackData: "",
+                preTransferOutCallbackData: "",
+                instructionsArgs: "",
+                signature: ""
+            })
+        );
+    }
+
+    function _quoteExactIn(ISwapVM.Order memory order, uint256 amountIn)
+        internal
+        returns (uint256 amountInOut, uint256 amountOut, bytes32 hash)
+    {
+        return swapRouter.asView().quote(order, address(tokenQuote), address(tokenBase), amountIn, _quoteTakerData(true));
+    }
+
+    function _riptideSwapExactIn(ISwapVM.Order memory order, uint256 amountIn)
+        internal
+        returns (uint256 amountInOut, uint256 amountOut, bytes32 hash)
+    {
+        tokenQuote.mint(taker, amountIn);
+        vm.startPrank(taker);
+        tokenQuote.approve(address(swapRouter), amountIn);
+        (amountInOut, amountOut, hash) =
+            swapRouter.riptideSwap(order, address(tokenQuote), address(tokenBase), amountIn, _swapTakerData(true));
+        vm.stopPrank();
+    }
+}

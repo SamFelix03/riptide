@@ -39,6 +39,12 @@ jobs:
       - name: Rebalance kernel tests
         working-directory: contracts
         run: forge test --match-contract RiptideRebalanceKernel -vvv
+      - name: Opcode index, EIP-170 size, and router layout tests
+        working-directory: contracts
+        run: forge test --match-contract "OpcodeIndexProbe|DeploySize|RiptideSwapVMRouter|RiptideRebalanceInstruction" -vvv
+      - name: Mechanism 1/2 and SwapVM invariant tests
+        working-directory: contracts
+        run: forge test --match-contract "Mechanism1|Mechanism2|SwapVMInvariants|Reentrancy" -vvv
 
   typescript:
     name: pnpm build

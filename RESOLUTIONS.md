@@ -34,10 +34,12 @@ This preserves `SYSTEM.md` §6 intent: official published sources, never the
 - Related: `_aquaProtocolFeeAmountInXD` at index **29** (line 69)
 
 **RIPTIDE Mechanism 1 decision:** Mechanism 1 still uses the `FeeProtocol` /
-`IProtocolFeeProvider` provider path (`_dynamicProtocolFeeAmountInXD` at index **30**) as
-normative in `SWAPVM_INTEGRATION.md` §4. The Aqua pull variants exist for makers who want
-fees retained inside Aqua balances; the default build path is the ordinary provider
-`staticcall` flow documented in the spec.
+`IProtocolFeeProvider` provider path. Phase 8 encodes `OP_AQUA_DYNAMIC_PROTOCOL_FEE`
+(runtime **30**) in `buildSwapOrder`; that handler `staticcall`s
+`getFeeBpsAndRecipient` on `RiptideLvrFeeProvider`. The Aqua-retained pull variants
+exist for makers who want fees kept inside Aqua balances; they are not the default
+args path. The stock `_dynamicProtocolFeeAmountInXD` (runtime 29) is omitted from
+the trimmed swap table.
 
 ---
 
@@ -61,15 +63,27 @@ Pinned `AquaOpcodes._opcodes()` (`lib/swap-vm/src/opcodes/AquaOpcodes.sol`):
 | 32–34 | PeggedSwap, Extruction, onlyTxOrigin |
 
 **Decision:** The illustrated `0xa0` (160 decimal) is **invalid** for v1.0.2 — the table
-has only 35 entries (indices 0–34). RIPTIDE will:
+has only 35 entries (indices 0–34). Phase 1 planned to append at source-line index **35**
+or reuse placeholder 23.
 
-1. Override `_opcodes()` in the RIPTIDE router, **append** the custom rebalance handler
-   at index **35** (first slot after the stock table, per the comment "Add new instructions
-   here" at line 60), **or** occupy placeholder index **23** if bytecode-size constraints
-   favor reusing a free slot.
+**Phase 8 freeze:** `AquaOpcodes._opcodes()` overwrites slot 0 with the array length, so
+**runtime dispatch indices are one less** than source-line indices. RIPTIDE appends
+after a stock table of 34 entries. Frozen in `RiptideConstants.sol`:
 
-Frozen constant for encoding vectors: `RIPTIDE_REBALANCE_OPCODE = 35` (append),
-with index 23 documented as the size-contingent fallback.
+| Runtime index | Handler |
+| --- | --- |
+| 13 | `Controls._deadline` |
+| 17 | `XYCSwap._xycSwapXD` |
+| 19 | `Decay._decayXD` |
+| 20 | `Controls._salt` |
+| 30 | `Fee._aquaDynamicProtocolFeeAmountInXD` |
+| **34** | `RIPTIDE_REBALANCE_OPCODE` |
+| 35 | DutchAuctionBalanceIn |
+| 36 | DutchAuctionBalanceOut |
+| 37 | `OraclePriceAdjuster` (reserved, unused) |
+
+`_extendOpcodes()` / `_opcodes()` use `new` dynamic arrays and must not repeat the
+slot-0 assembly length write. Index 23 was not needed.
 
 ---
 
@@ -133,11 +147,36 @@ address to)` only (`IProtocolFeeProvider.sol`; `Fee.sol` staticcall at lines 169
 
 ---
 
-## 6. EIP-170 fit (`SWAPVM_INTEGRATION.md` §3.1, §11)
+## 6. EIP-170 two-router split (`SWAPVM_INTEGRATION.md` §3.1, §11)
 
-**Status:** **deferred.** Measuring one-router vs two-router bytecode requires the RIPTIDE
-router to exist. Recorded here so the §11 tag has an owner; resolved when the router is
-built.
+**Status:** **Resolved in Phase 8** (measured 2026-09-09, solc 0.8.30, via_ir, optimizer_runs 700).
+
+| Contract | Runtime bytecode |
+| --- | --- |
+| `RiptideSwapVMRouter` | 24,527 B |
+| `RiptideRebalanceRouter` | 22,648 B |
+| EIP-170 cap | 24,576 B |
+
+**Decision:** Two-router split implemented. Combining stock AquaOpcodes with both
+mechanisms exceeds EIP-170. Trimming unused mixins and splitting swap vs rebalance
+lets **each router fit under 24,576 B**.
+
+- Swap path: `RiptideSwapOpcodes` → `SwapVM`. Does **not** inherit `AquaSwapVMRouter`.
+- Rebalance path: `RiptideRebalanceRouter` is `SwapVM` + `RiptideOpcodes`; settlement
+  lives in `RiptideRebalanceModule` so the interpreter stays smaller.
+- Dutch handlers are copied into `RiptideDutchHandlers.sol` (not inherited from
+  `DutchAuction`) to avoid C3 linearization.
+
+**Program layouts:**
+
+- Swap: `Deadline → aquaDynamicProtocolFee(feeProvider) → XYCSwap → Salt`
+- Rebalance: `Deadline → DutchAuctionBalanceIn/Out → Decay → XYCSwap → RIPTIDE_REBALANCE_OPCODE → Salt`
+
+Reserves come from Aqua `safeBalances` before `runLoop` when the Aqua trait is set.
+No `DynamicBalances` opcode. Payload prefix is 226 bytes; MakerTraits Program slice
+starts at 226.
+
+`DeploySizeTest` asserts both routers `<= 24,576`.
 
 ---
 
@@ -167,3 +206,15 @@ payload is a prefix of `order.data`. `MakerTraitsFreeze` proves:
 - `RiptideMakerTraits.buildOrder` yields a program slice that excludes the 226-byte payload
 
 Do not change the 208-bit shift — it would invalidate every live order hash.
+
+---
+
+## 9. OraclePriceAdjuster (opcode 37) — reserved, unused (`FEATURES.md` 3.1, 5.3)
+
+**Question:** Should `OraclePriceAdjuster` be wired into the swap program?
+
+**Resolution:** **No.** Opcode 37 is reserved in `RiptideConstants.sol` but is not
+installed in either opcode table. The SwapVM handler clips `amountIn`/`amountOut`
+toward a Chainlink price, which would fight Mechanism 1 (LVR is priced on the CPMM
+curve). Volatility enters through auction-revealed price → `RiptideVolatilityOracle.observe`
+from the rebalance path, not through opcode 37.

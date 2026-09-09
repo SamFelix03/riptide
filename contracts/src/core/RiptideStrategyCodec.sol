@@ -99,6 +99,19 @@ library RiptideStrategyCodec {
         return keccak256(abi.encode(maker, strategyHash));
     }
 
+    /// @dev Stable runtime key shared by swap and rebalance orders with the same payload salt.
+    function runtimeStrategyKey(address maker, bytes32 salt) internal pure returns (bytes32) {
+        return keccak256(abi.encode(maker, salt));
+    }
+
+    function runtimeStrategyKeyFromData(address maker, bytes calldata data) internal pure returns (bytes32) {
+        if (data.length < 77) {
+            revert RiptideErrors.RiptideInvalidEncodingLength(data.length, 77);
+        }
+        bytes32 salt = bytes32(data[45:77]);
+        return runtimeStrategyKey(maker, salt);
+    }
+
     function _requireEnvelope(bytes memory payload) private pure {
         if (payload.length != PAYLOAD_LENGTH) {
             revert RiptideErrors.RiptideInvalidEncodingLength(payload.length, PAYLOAD_LENGTH);
