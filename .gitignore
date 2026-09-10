@@ -68,9 +68,11 @@ test/vectors/*.local.json
 .cursor/
 agent-transcripts/
 
-# Local Anvil manifests (example fixture stays tracked)
+# Local Anvil live manifest (example fixture stays tracked)
 deployments/*.json
 !deployments/*.example.json
+!deployments/84532.json
+deployments/*.wallets.json
 
 # Graph Node local data
 subgraph/docker/data/

@@ -86,6 +86,7 @@ jobs:
       - run: pnpm -w build
       - run: pnpm --filter @riptide/contracts codegen:check
       - run: pnpm --filter @riptide/contracts validate-manifest deployments/31337.example.json
+      - run: pnpm --filter @riptide/contracts validate-manifest deployments/84532.json
       - run: pnpm --filter @riptide/contracts test
       - run: pnpm --filter @riptide/riptide-math test
       - run: pnpm --filter @riptide/strategy-sdk test
@@ -97,6 +98,21 @@ jobs:
       - run: pnpm --filter @riptide/liquidity-mcp test
       - run: pnpm --filter @riptide/frontend-api test
       - run: pnpm --filter @riptide/web test
+
+  address-audit:
+    name: hardcoded address grep audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - run: pnpm install
+      - run: pnpm --filter @riptide/contracts build
+      - name: Audit hardcoded addresses
+        env:
+          CHAIN_ID: "84532"
+        run: node tools/audit/hardcoded-addresses.mjs
 
   reference:
     name: python unittest

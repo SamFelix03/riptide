@@ -16,7 +16,11 @@
     "web:dev": "pnpm --filter @riptide/web dev",
     "web:build": "pnpm --filter @riptide/web build",
     "web:test": "pnpm --filter @riptide/web test",
-    "web:e2e": "pnpm --filter @riptide/web test:e2e"
+    "web:e2e": "pnpm --filter @riptide/web test:e2e",
+    "demo:reset": "node tools/demo/reset.mjs",
+    "deploy:testnet": "node tools/deploy/testnet.mjs",
+    "audit:addresses": "node tools/audit/hardcoded-addresses.mjs",
+    "provenance:verify": "node tools/provenance/verify.mjs"
   },
   "devDependencies": {
     "dotenv": "^17.4.2",

@@ -1,0 +1,8 @@
+{
+  "id": "integration-anvil",
+  "chainId": 31337,
+  "manifest": "deployments/31337.json",
+  "description": "Local Anvil with fresh Aqua deploy + local Graph Node",
+  "publicDemo": false,
+  "deferredReason": "No testnet deploy budget; public profile locked for Phase 22+"
+}

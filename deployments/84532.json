@@ -1,0 +1,48 @@
+{
+  "chainId": 84532,
+  "name": "base-sepolia",
+  "blockNumber": 46508029,
+  "commit": "926174f14b47113970b69641e62792746a188a90",
+  "aqua": "0x02d82c06A01141acd3cb97d9EFF11502505381aE",
+  "swapRouter": "0x066C49ea440eFA9428AA3695Ce31Bf9F5e03b5c9",
+  "rebalanceRouter": "0x16F696B29Af345A116786f93733C8Cb1D65B2aEe",
+  "kernel": "0xd7770744ab4642a83198c07F80C334b2d7518967",
+  "oracle": "0x327BD529060BCc6F2cf3771EdF5E37682e8F5DD2",
+  "feeProvider": "0x12A83BDfA3feDEd94C6Ea5A7c6C18aA93D76c1ad",
+  "settler": "0xCeAEB0493797133F9CC980a3c384051203D99252",
+  "quoter": "0x8B1485Ef1208Cc8e21a3cbc8380d5F5Fe669Eba3",
+  "lens": "0xC3A8cdC196E2137ad7eEa08bfdFA196ed2b9c954",
+  "batchExecutor": "0xDA1abB39b60B0d08F0e91D5A9b41e64540811Ae8",
+  "demoTokens": {
+    "base": "0x0c1931849c3D01fb6C3C7C395E7f6bc03e1fBB2b",
+    "quote": "0x98dbe041474a0960DAa51eAC9ABAc9313b8C60A5"
+  },
+  "seededStrategies": [
+    {
+      "id": "S1",
+      "maker": "0xEB1042F1eA9403871c53a5B1799D4dA68ae44C56",
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000165",
+      "strategyKey": "0xafbd74cb9f9b73604567d9e9075a5678eef95f372844f83d4102bc5a8e7d359f",
+      "orderHash": "0x718f67f3793ff153145beba48a9958effc8f84c38ddeeaa9cf92b36d972e7237"
+    },
+    {
+      "id": "S2",
+      "maker": "0x4d04C9Bdc1A4B864396d0Ef12F9B06391046dE75",
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000066",
+      "strategyKey": "0xba35ed48eac336546427dce80c581a42c4150efd62aca908697cf626187e9d21",
+      "orderHash": "0x9c2ed6dd2e54b5d729bcce916c27a6ed9eb70db77a944d9956144d3834b5e468"
+    },
+    {
+      "id": "S3",
+      "maker": "0x3Eaf09821634a80ce710A4E2fe3F0A1ae1FA6d03",
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000067",
+      "strategyKey": "0x33e55f377443b652ca59673c5f7e60197a39de522e4dceb6c190ca31e00f1783",
+      "orderHash": "0x830c185b9e8378e9873608b6053099a74b0f5472f1b5bd545962746ec1f63de0"
+    }
+  ],
+  "chainlinkFeed": "0x45E2FdD8FCfBe838F3fca53b19708b36E643ccD5",
+  "demoResolver": "0x4254ED501dd11B38f50505a37dfEDcc231185E61",
+  "subgraphUrl": "https://api.studio.thegraph.com/query/1758400/riptide/version/latest",
+  "rpcUrl": "https://sepolia.base.org",
+  "explorerUrl": "https://sepolia.basescan.org"
+}

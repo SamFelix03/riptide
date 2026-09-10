@@ -1,0 +1,7 @@
+{
+  "id": "integration-base-sepolia",
+  "chainId": 84532,
+  "manifest": "deployments/84532.json",
+  "description": "Base Sepolia public testnet — same call semantics as Anvil, EIP-170-compliant routers",
+  "publicDemo": true
+}
