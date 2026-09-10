@@ -67,3 +67,7 @@ test/vectors/*.local.json
 # Cursor / agent artifacts (local only)
 .cursor/
 agent-transcripts/
+
+# Local Anvil manifests (example fixture stays tracked)
+deployments/*.json
+!deployments/*.example.json

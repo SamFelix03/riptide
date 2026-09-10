@@ -60,6 +60,9 @@ jobs:
       - name: Periphery (Gate 7) tests
         working-directory: contracts
         run: forge test --match-contract "RiptideQuoter|RiptideLens|AuctionSettler|BatchExecutor|QuoterRebalancePreview" -vvv
+      - name: Demo token and deploy/seed scripts
+        working-directory: contracts
+        run: forge test --match-contract "RiptideDemoToken|DeploySeed" -vvv
 
   typescript:
     name: pnpm build
@@ -94,6 +97,45 @@ jobs:
         run: python -m tools.reference.generate_vectors --check
       - name: Verify committed payload vectors
         run: python -m tools.reference.generate_payload_vectors --check
+      - name: Validate deployment manifest schema
+        run: python -m tools.validate_manifest deployments/31337.example.json
+      - name: Manifest schema tests
+        run: python -m unittest tools.reference.test_manifest_schema -v
+
+  anvil-deploy:
+    name: anvil deploy + seed + manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Start Anvil
+        run: anvil --chain-id 31337 --port 8545 &
+      - name: Wait for Anvil
+        run: sleep 2
+      - name: Deploy Riptide stack
+        working-directory: contracts
+        run: |
+          forge script script/deploy.s.sol:DeployScript --broadcast \
+            --rpc-url http://127.0.0.1:8545 \
+            --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+            --legacy
+      - name: Seed demo strategies
+        working-directory: contracts
+        run: |
+          forge script script/seed.s.sol:SeedScript --broadcast \
+            --rpc-url http://127.0.0.1:8545 \
+            --private-keys 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+            --private-keys 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d \
+            --private-keys 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a \
+            --private-keys 0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6 \
+            --legacy
+      - name: Validate Anvil manifest schema
+        run: python -m tools.validate_manifest deployments/31337.json
 
   fork:
     name: fork smoke test

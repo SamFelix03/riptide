@@ -10,7 +10,8 @@ via_ir = true
 evm_version = "cancun"
 fs_permissions = [
   { access = "read", path = "../test/vectors" },
-  { access = "read", path = "./" }
+  { access = "read", path = "./" },
+  { access = "read-write", path = "../deployments" }
 ]
 
 [profile.default.fuzz]
