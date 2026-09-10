@@ -187,7 +187,8 @@ jobs:
       - run: pnpm --filter @riptide/resolver-bot... build
       - run: pnpm --filter @riptide/vol-indexer... build
       - run: pnpm --filter @riptide/liquidity-mcp... build
-      - name: Solver, resolver, vol-indexer, and liquidity-mcp against Anvil
+      - run: pnpm --filter @riptide/frontend-api... build
+      - name: Solver, resolver, vol-indexer, liquidity-mcp, and frontend-api against Anvil
         env:
           RPC_URL: http://127.0.0.1:8545
           CHAIN_ID: "31337"
@@ -199,6 +200,7 @@ jobs:
           pnpm --filter @riptide/resolver-bot test
           pnpm --filter @riptide/vol-indexer test
           pnpm --filter @riptide/liquidity-mcp test
+          pnpm --filter @riptide/frontend-api test
 
   fork:
     name: fork smoke test

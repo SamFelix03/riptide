@@ -5,14 +5,30 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./mock": {
+      "types": "./dist/mock/index.d.ts",
+      "default": "./dist/mock/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run"
   },
   "dependencies": {
-    "@riptide/contracts": "workspace:*"
+    "@riptide/contracts": "workspace:*",
+    "@riptide/resolver-core": "workspace:*",
+    "@riptide/solver-core": "workspace:*",
+    "@riptide/strategy-sdk": "workspace:*",
+    "dotenv": "^17.4.2",
+    "viem": "2.48.4"
   },
   "devDependencies": {
+    "@types/node": "^22.13.5",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"
   }

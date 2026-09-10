@@ -41,7 +41,25 @@ importers:
       '@riptide/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@riptide/resolver-core':
+        specifier: workspace:*
+        version: link:../resolver-core
+      '@riptide/solver-core':
+        specifier: workspace:*
+        version: link:../solver-core
+      '@riptide/strategy-sdk':
+        specifier: workspace:*
+        version: link:../strategy-sdk
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      viem:
+        specifier: 2.48.4
+        version: 2.48.4(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
+      '@types/node':
+        specifier: ^22.13.5
+        version: 22.20.2
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
