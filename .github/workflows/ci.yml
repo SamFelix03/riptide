@@ -96,6 +96,7 @@ jobs:
       - run: pnpm --filter @riptide/vol-indexer test
       - run: pnpm --filter @riptide/liquidity-mcp test
       - run: pnpm --filter @riptide/frontend-api test
+      - run: pnpm --filter @riptide/web test
 
   reference:
     name: python unittest

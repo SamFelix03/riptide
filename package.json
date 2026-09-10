@@ -14,7 +14,9 @@
     "subgraph:deploy-local": "node tools/subgraph/deploy-local.mjs",
     "subgraph:deploy": "node tools/subgraph/deploy-studio.mjs",
     "web:dev": "pnpm --filter @riptide/web dev",
-    "web:build": "pnpm --filter @riptide/web build"
+    "web:build": "pnpm --filter @riptide/web build",
+    "web:test": "pnpm --filter @riptide/web test",
+    "web:e2e": "pnpm --filter @riptide/web test:e2e"
   },
   "devDependencies": {
     "dotenv": "^17.4.2",
