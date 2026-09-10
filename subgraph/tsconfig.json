@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "types": ["@graphprotocol/graph-ts"],
+    "lib": ["ES2020"],
+    "skipLibCheck": true
+  },
+  "include": ["src", "tests"]
+}

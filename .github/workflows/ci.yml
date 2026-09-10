@@ -117,6 +117,32 @@ jobs:
       - name: Manifest schema tests
         run: python -m unittest tools.reference.test_manifest_schema -v
 
+  subgraph:
+    name: subgraph matchstick
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: Build contracts for ABI extract
+        working-directory: contracts
+        run: forge build
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install
+      - name: Subgraph codegen and tests
+        working-directory: subgraph
+        run: |
+          pnpm run abis
+          pnpm run codegen
+          pnpm run test
+
   anvil-deploy:
     name: anvil deploy + seed + manifest
     runs-on: ubuntu-latest

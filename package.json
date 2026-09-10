@@ -8,6 +8,14 @@
   },
   "scripts": {
     "build": "pnpm -r run build",
-    "test": "pnpm -r run test --if-present"
+    "test": "pnpm -r run test --if-present",
+    "subgraph:up": "node tools/subgraph/graph-up.mjs",
+    "subgraph:down": "node tools/subgraph/graph-down.mjs",
+    "subgraph:deploy-local": "node tools/subgraph/deploy-local.mjs",
+    "subgraph:deploy": "node tools/subgraph/deploy-studio.mjs"
+  },
+  "devDependencies": {
+    "dotenv": "^17.4.2",
+    "viem": "2.48.4"
   }
 }

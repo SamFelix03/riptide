@@ -1,0 +1,136 @@
+type Protocol @entity(immutable: false) {
+  id: ID!
+  chainId: BigInt!
+  aqua: Bytes!
+  swapRouter: Bytes!
+  rebalanceRouter: Bytes!
+  batchExecutor: Bytes!
+  settler: Bytes!
+  quoter: Bytes!
+  lens: Bytes!
+  totalFillVolume: BigInt!
+  totalRecapture: BigInt!
+  fillCount: BigInt!
+  rebalanceCount: BigInt!
+}
+
+type Token @entity(immutable: false) {
+  id: ID!
+  symbol: String!
+  decimals: Int!
+}
+
+type Market @entity(immutable: false) {
+  id: ID!
+  baseToken: Token!
+  quoteToken: Token!
+  fillVolume: BigInt!
+  recaptureVolume: BigInt!
+  strategies: [Strategy!]! @derivedFrom(field: "market")
+}
+
+type Maker @entity(immutable: false) {
+  id: ID!
+  fillVolume: BigInt!
+  recaptureVolume: BigInt!
+  strategies: [Strategy!]! @derivedFrom(field: "maker")
+}
+
+type StrategyKeyIndex @entity(immutable: false) {
+  id: ID!
+  strategy: Strategy!
+}
+
+type Strategy @entity(immutable: false) {
+  id: ID!
+  strategyKey: Bytes!
+  strategyHash: Bytes!
+  maker: Maker!
+  market: Market!
+  reserveBaseWad: BigInt!
+  reserveQuoteWad: BigInt!
+  aquaBase: BigInt!
+  aquaQuote: BigInt!
+  docked: Boolean!
+  lastVersion: BigInt!
+  fills: [Fill!]! @derivedFrom(field: "strategy")
+  rebalances: [Rebalance!]! @derivedFrom(field: "strategy")
+  controllerStates: [ControllerState!]! @derivedFrom(field: "strategy")
+}
+
+type ControllerState @entity(immutable: true) {
+  id: ID!
+  strategy: Strategy!
+  sigmaWad: BigInt!
+  feeTarget: Int!
+  feeReported: Int!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+}
+
+type Fill @entity(immutable: true) {
+  id: ID!
+  route: Route
+  strategy: Strategy!
+  market: Market!
+  maker: Maker!
+  tokenIn: Bytes!
+  tokenOut: Bytes!
+  amountIn: BigInt!
+  amountOut: BigInt!
+  feeBpsApplied: Int!
+  sigmaWad: BigInt!
+  reserveBaseAfterWad: BigInt!
+  reserveQuoteAfterWad: BigInt!
+  versionAfter: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type Rebalance @entity(immutable: true) {
+  id: ID!
+  strategy: Strategy!
+  market: Market!
+  maker: Maker!
+  resolver: Bytes!
+  tokenIn: Bytes!
+  tokenOut: Bytes!
+  executedInWad: BigInt!
+  staleInWad: BigInt!
+  surplusWad: BigInt!
+  retainToLPWad: BigInt!
+  payToResolverWad: BigInt!
+  revealedPriceWad: BigInt!
+  versionAfter: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type Route @entity(immutable: true) {
+  id: ID!
+  market: Market!
+  payer: Bytes!
+  recipient: Bytes!
+  kind: Int!
+  tokenIn: Bytes!
+  tokenOut: Bytes!
+  amountIn: BigInt!
+  amountOut: BigInt!
+  limit: BigInt!
+  fillCount: Int!
+  fills: [Fill!]! @derivedFrom(field: "route")
+  blockNumber: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+}
+
+type MarketSnapshot @entity(immutable: false) {
+  id: ID!
+  market: Market!
+  bucketStart: BigInt!
+  fillVolume: BigInt!
+  recaptureVolume: BigInt!
+  fillCount: BigInt!
+}

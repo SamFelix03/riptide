@@ -71,3 +71,6 @@ agent-transcripts/
 # Local Anvil manifests (example fixture stays tracked)
 deployments/*.json
 !deployments/*.example.json
+
+# Graph Node local data
+subgraph/docker/data/

@@ -1,0 +1,132 @@
+specVersion: 1.0.0
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: Aqua
+    network: anvil
+    source:
+      address: "0x0000000000000000000000000000000000000001"
+      abi: Aqua
+      startBlock: 1
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Protocol
+        - Market
+        - Maker
+        - Strategy
+        - Token
+      abis:
+        - name: Aqua
+          file: ./abis/Aqua.json
+      file: ./src/mappings/aqua.ts
+      eventHandlers:
+        - event: Shipped(address,address,bytes32,bytes)
+          handler: handleShipped
+        - event: Docked(address,address,bytes32)
+          handler: handleDocked
+        - event: Pushed(address,address,bytes32,address,uint256)
+          handler: handlePushed
+        - event: Pulled(address,address,bytes32,address,uint256)
+          handler: handlePulled
+
+  - kind: ethereum
+    name: RiptideSwapVMRouter
+    network: anvil
+    source:
+      address: "0x0000000000000000000000000000000000000002"
+      abi: RiptideSwapVMRouter
+      startBlock: 1
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Strategy
+        - Market
+        - Maker
+        - Fill
+        - Protocol
+      abis:
+        - name: RiptideSwapVMRouter
+          file: ./abis/RiptideSwapVMRouter.json
+      file: ./src/mappings/swap-router.ts
+      eventHandlers:
+        - event: StrategyRuntimeInitialized(indexed bytes32,indexed bytes32,indexed address,bytes32,uint128,uint128,uint64)
+          handler: handleStrategyRuntimeInitialized
+        - event: SwapFilled(indexed bytes32,indexed bytes32,indexed address,bytes32,address,address,uint256,uint256,uint24,uint128,uint128,uint128,uint64)
+          handler: handleSwapFilled
+
+  - kind: ethereum
+    name: RiptideLvrFeeProvider
+    network: anvil
+    source:
+      address: "0x0000000000000000000000000000000000000006"
+      abi: RiptideLvrFeeProvider
+      startBlock: 1
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - ControllerState
+        - Strategy
+      abis:
+        - name: RiptideLvrFeeProvider
+          file: ./abis/RiptideLvrFeeProvider.json
+      file: ./src/mappings/fee-provider.ts
+      eventHandlers:
+        - event: FeeControllerUpdated(indexed bytes32,uint128,uint24,uint24)
+          handler: handleFeeControllerUpdated
+
+  - kind: ethereum
+    name: RiptideBatchExecutor
+    network: anvil
+    source:
+      address: "0x000000000000000000000000000000000000000A"
+      abi: RiptideBatchExecutor
+      startBlock: 1
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Route
+        - Market
+        - Protocol
+      abis:
+        - name: RiptideBatchExecutor
+          file: ./abis/RiptideBatchExecutor.json
+      file: ./src/mappings/batch-executor.ts
+      eventHandlers:
+        - event: RouteExecuted(indexed bytes32,indexed bytes32,indexed address,address,uint8,address,address,uint256,uint256,uint256,uint16)
+          handler: handleRouteExecuted
+
+  - kind: ethereum
+    name: RiptideRebalanceRouter
+    network: anvil
+    source:
+      address: "0x0000000000000000000000000000000000000003"
+      abi: RiptideRebalanceRouter
+      startBlock: 1
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Rebalance
+        - Market
+        - Maker
+        - Strategy
+        - Protocol
+        - MarketSnapshot
+      abis:
+        - name: RiptideRebalanceRouter
+          file: ./abis/RiptideRebalanceRouter.json
+      file: ./src/mappings/rebalance-router.ts
+      eventHandlers:
+        - event: RebalanceSettled(indexed bytes32,indexed address,indexed address,bytes32,address,address,uint256,uint256,uint256,uint256,uint256,uint128,uint64)
+          handler: handleRebalanceSettled
