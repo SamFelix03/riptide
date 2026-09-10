@@ -48,6 +48,15 @@ jobs:
       - name: Loop (Gate 6) tests
         working-directory: contracts
         run: forge test --match-contract LoopTest -vvv
+      - name: Invariant suite (V1-V5)
+        working-directory: contracts
+        run: forge test --match-path "test/invariant/**" -vvv
+      - name: Runtime unit tests
+        working-directory: contracts
+        run: forge test --match-path "test/unit/Runtime*" -vvv
+      - name: Aqua lifecycle tests
+        working-directory: contracts
+        run: forge test --match-contract "AquaPushPull|AquaDock|RebalanceAuth" -vvv
 
   typescript:
     name: pnpm build
