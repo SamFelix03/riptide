@@ -9,7 +9,7 @@ subgraph) read from this manifest — no hardcoded addresses elsewhere in the co
 1. Start Anvil: `anvil --host 0.0.0.0 --chain-id 31337`
 2. Deploy: `forge script script/deploy.s.sol:DeployScript --broadcast --rpc-url http://127.0.0.1:8545`
 3. Seed S1–S3: `forge script script/seed.s.sol:SeedScript --broadcast --rpc-url http://127.0.0.1:8545`
-4. Validate: `python -m tools.validate_manifest deployments/31337.json`
+4. Validate: `pnpm --filter @riptide/contracts validate-manifest deployments/31337.json`
 
 `deployments/31337.json` is written by the scripts and is gitignored. The committed
 fixture [`31337.example.json`](31337.example.json) is the schema sample CI checks.

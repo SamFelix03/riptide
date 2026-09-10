@@ -69,6 +69,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
       - uses: pnpm/action-setup@v4
         with:
           version: 9
@@ -76,10 +79,19 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Build Solidity artifacts for ABI codegen
+        working-directory: contracts
+        run: forge build
       - run: pnpm install
       - run: pnpm -w build
+      - run: pnpm --filter @riptide/contracts codegen:check
+      - run: pnpm --filter @riptide/contracts validate-manifest deployments/31337.example.json
+      - run: pnpm --filter @riptide/contracts test
       - run: pnpm --filter @riptide/riptide-math test
       - run: pnpm --filter @riptide/strategy-sdk test
+      - run: pnpm --filter @riptide/solver-core test
+      - run: pnpm --filter @riptide/resolver-core test
+      - run: pnpm --filter @riptide/frontend-api test
 
   reference:
     name: python unittest
@@ -110,9 +122,6 @@ jobs:
         with:
           submodules: recursive
       - uses: foundry-rs/foundry-toolchain@v1
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
       - name: Start Anvil
         run: anvil --chain-id 31337 --port 8545 &
       - name: Wait for Anvil
@@ -134,8 +143,16 @@ jobs:
             --private-keys 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a \
             --private-keys 0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6 \
             --legacy
-      - name: Validate Anvil manifest schema
-        run: python -m tools.validate_manifest deployments/31337.json
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install
+      - run: pnpm --filter @riptide/contracts build
+      - run: pnpm --filter @riptide/contracts validate-manifest deployments/31337.json
 
   fork:
     name: fork smoke test

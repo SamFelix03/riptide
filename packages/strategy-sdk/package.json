@@ -12,6 +12,7 @@
   "dependencies": {
     "@1inch/aqua-sdk": "0.3.1",
     "@1inch/swap-vm-sdk": "0.4.1",
+    "@riptide/contracts": "workspace:*",
     "viem": "2.48.4"
   },
   "devDependencies": {

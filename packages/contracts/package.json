@@ -3,7 +3,36 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./abis": {
+      "types": "./dist/abis/index.d.ts",
+      "default": "./dist/abis/index.js"
+    },
+    "./networks": {
+      "types": "./dist/networks.d.ts",
+      "default": "./dist/networks.js"
+    }
+  },
   "scripts": {
-    "build": "echo ok"
+    "codegen": "node scripts/codegen.mjs",
+    "codegen:check": "node scripts/codegen.mjs --check",
+    "validate-manifest": "tsc && node scripts/validate-manifest.mjs",
+    "build": "pnpm codegen && tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "viem": "2.48.4",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
   }
 }
