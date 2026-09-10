@@ -69,6 +69,15 @@ importers:
       '@riptide/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@riptide/riptide-math':
+        specifier: workspace:*
+        version: link:../riptide-math
+      '@riptide/strategy-sdk':
+        specifier: workspace:*
+        version: link:../strategy-sdk
+      viem:
+        specifier: 2.48.4
+        version: 2.48.4(typescript@5.9.3)(zod@3.25.76)
     devDependencies:
       typescript:
         specifier: ^5.7.3
@@ -103,7 +112,36 @@ importers:
 
   services/resolver-bot: {}
 
-  services/solver-api: {}
+  services/solver-api:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.14.1
+        version: 1.19.17(hono@4.13.7)
+      '@riptide/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@riptide/solver-core':
+        specifier: workspace:*
+        version: link:../../packages/solver-core
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      hono:
+        specifier: ^4.7.7
+        version: 4.13.7
+      viem:
+        specifier: 2.48.4
+        version: 2.48.4(typescript@5.9.3)(zod@3.25.76)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.13.5
+        version: 22.20.2
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.5
+        version: 3.2.7(@types/node@22.20.2)
 
   services/vol-indexer: {}
 
@@ -292,6 +330,12 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@hono/node-server@1.19.17':
+    resolution: {integrity: sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ==}
+    engines: {node: '>=18.14.1'}
+    peerDependencies:
+      hono: ^4
 
   '@jridgewell/sourcemap-codec@1.6.0':
     resolution: {integrity: sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==}
@@ -529,6 +573,10 @@ packages:
     resolution: {integrity: sha512-h5k/5U50IJJFpzfL6nO9jaaumfjO/f2NjK/oYB2Djzm4p9L+3T9qWpZqZ2hAbLPuuYq9wrU08WQyBTL5GbPk5Q==}
     engines: {node: '>=6'}
 
+  dotenv@17.4.2:
+    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
+    engines: {node: '>=12'}
+
   es-module-lexer@1.7.0:
     resolution: {integrity: sha512-jEQoCwk8hyb2AZziIOLhDqpm5+2ww5uIE6lkO/6jcOCusfk6LhMHpXXfBLXTZ7Ydyt0j4VoUQv6uGNYbdW+kBA==}
 
@@ -560,6 +608,10 @@ packages:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
+
+  hono@4.13.7:
+    resolution: {integrity: sha512-c8/gF9ac8Y78/agExVocyLevgR+JlpNB444Py0FSX8pJoPdYUfUzRcXtYEYGwt6l19qIlVZPN5Mfsw9jFShmQQ==}
+    engines: {node: '>=16.9.0'}
 
   isows@1.0.7:
     resolution: {integrity: sha512-I1fSfDCZL5P0v33sVqeTDSpcstAg/N+wF5HS033mogOVIp4B+oHC7oOCsA3axAbBSGTJ8QubbNmnIRN/h8U7hg==}
@@ -884,6 +936,10 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
+  '@hono/node-server@1.19.17(hono@4.13.7)':
+    dependencies:
+      hono: 4.13.7
+
   '@jridgewell/sourcemap-codec@1.6.0': {}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
@@ -1065,6 +1121,8 @@ snapshots:
 
   deep-eql@5.0.2: {}
 
+  dotenv@17.4.2: {}
+
   es-module-lexer@1.7.0: {}
 
   esbuild@0.28.2:
@@ -1110,6 +1168,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  hono@4.13.7: {}
 
   isows@1.0.7(ws@8.18.3):
     dependencies:

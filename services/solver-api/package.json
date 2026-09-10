@@ -3,7 +3,23 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "./dist/server.js",
   "scripts": {
-    "build": "echo ok"
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.1",
+    "@riptide/contracts": "workspace:*",
+    "@riptide/solver-core": "workspace:*",
+    "dotenv": "^17.4.2",
+    "hono": "^4.7.7",
+    "viem": "2.48.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
   }
 }

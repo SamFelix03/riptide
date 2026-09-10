@@ -1,2 +1,15 @@
-export type { DeploymentManifest } from "@riptide/contracts";
+export * from "./manifest.js";
+export * from "./constants.js";
+export * from "./types.js";
+export * from "./presets.js";
+export * from "./quote.js";
+export * from "./marginal.js";
+export * from "./optimize.js";
+export * from "./certificate.js";
+export * from "./encode.js";
+export * from "./discovery.js";
+export * from "./feed.js";
+export * from "./chainReady.js";
+export * from "./subgraph/client.js";
+export * from "./rpcEvents.js";
 export { getRiptideLens, getRiptideQuoter, parseManifestFile } from "@riptide/contracts";

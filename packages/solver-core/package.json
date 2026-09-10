@@ -10,7 +10,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@riptide/contracts": "workspace:*"
+    "@riptide/contracts": "workspace:*",
+    "@riptide/riptide-math": "workspace:*",
+    "@riptide/strategy-sdk": "workspace:*",
+    "viem": "2.48.4"
   },
   "devDependencies": {
     "typescript": "^5.7.3",

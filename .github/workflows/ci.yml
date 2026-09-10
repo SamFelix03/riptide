@@ -90,6 +90,7 @@ jobs:
       - run: pnpm --filter @riptide/riptide-math test
       - run: pnpm --filter @riptide/strategy-sdk test
       - run: pnpm --filter @riptide/solver-core test
+      - run: pnpm --filter @riptide/solver-api test
       - run: pnpm --filter @riptide/resolver-core test
       - run: pnpm --filter @riptide/frontend-api test
 
@@ -153,6 +154,14 @@ jobs:
       - run: pnpm install
       - run: pnpm --filter @riptide/contracts build
       - run: pnpm --filter @riptide/contracts validate-manifest deployments/31337.json
+      - run: pnpm --filter @riptide/solver-api... build
+      - name: Solver-core and solver-api against Anvil
+        env:
+          RPC_URL: http://127.0.0.1:8545
+          CHAIN_ID: "31337"
+        run: |
+          pnpm --filter @riptide/solver-core test
+          pnpm --filter @riptide/solver-api test
 
   fork:
     name: fork smoke test
