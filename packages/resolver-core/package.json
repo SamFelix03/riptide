@@ -10,9 +10,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@riptide/contracts": "workspace:*"
+    "@riptide/contracts": "workspace:*",
+    "@riptide/riptide-math": "workspace:*",
+    "@riptide/strategy-sdk": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^22.13.5",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"
   }

@@ -1,2 +1,4 @@
-export type { DeploymentManifest } from "@riptide/contracts";
+export type { OpenAuction, EvaluateInput, EvaluateResult } from "./evaluate.js";
+export { evaluate } from "./evaluate.js";
+export { loadResolverManifest } from "./manifest.js";
 export { getRiptideAuctionSettler, parseManifestFile } from "@riptide/contracts";
