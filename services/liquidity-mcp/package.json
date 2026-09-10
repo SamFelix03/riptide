@@ -3,7 +3,30 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "./dist/main.js",
+  "bin": {
+    "liquidity-mcp": "./dist/main.js"
+  },
   "scripts": {
-    "build": "echo ok"
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.14.1",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@riptide/contracts": "workspace:*",
+    "@riptide/riptide-math": "workspace:*",
+    "@riptide/solver-core": "workspace:*",
+    "@riptide/strategy-sdk": "workspace:*",
+    "dotenv": "^17.4.2",
+    "hono": "^4.7.7",
+    "viem": "2.48.4",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
   }
 }

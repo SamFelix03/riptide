@@ -81,3 +81,52 @@ export function demoMarketId(chainId = 31337): string {
 export function demoMarketIdFromTokens(base: `0x${string}`, quote: `0x${string}`): string {
   return marketId(base, quote);
 }
+
+export type ProtocolStats = {
+  id: string;
+  totalFillVolume: string;
+  totalRecapture: string;
+  fillCount: string;
+  rebalanceCount: string;
+};
+
+export type MarketRecaptureRow = {
+  id: string;
+  fillVolume: string;
+  recaptureVolume: string;
+};
+
+const PROTOCOL_STATS_QUERY = `
+  query ProtocolStats($id: ID!) {
+    _meta { block { number timestamp } }
+    protocol(id: $id) {
+      id
+      totalFillVolume
+      totalRecapture
+      fillCount
+      rebalanceCount
+    }
+  }
+`;
+
+export async function queryProtocolStats(
+  subgraphUrl: string,
+  chainId = "31337",
+): Promise<{ _meta: GraphMeta; protocol: ProtocolStats | null }> {
+  return gql(subgraphUrl, PROTOCOL_STATS_QUERY, { id: chainId });
+}
+
+const MARKET_RECAPTURE_QUERY = `
+  query MarketRecapture {
+    markets {
+      id
+      fillVolume
+      recaptureVolume
+    }
+  }
+`;
+
+export async function queryRecaptureByMarket(subgraphUrl: string): Promise<MarketRecaptureRow[]> {
+  const data = await gql<{ markets: MarketRecaptureRow[] }>(subgraphUrl, MARKET_RECAPTURE_QUERY);
+  return data.markets;
+}
