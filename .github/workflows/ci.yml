@@ -57,6 +57,9 @@ jobs:
       - name: Aqua lifecycle tests
         working-directory: contracts
         run: forge test --match-contract "AquaPushPull|AquaDock|RebalanceAuth" -vvv
+      - name: Periphery (Gate 7) tests
+        working-directory: contracts
+        run: forge test --match-contract "RiptideQuoter|RiptideLens|AuctionSettler|BatchExecutor|QuoterRebalancePreview" -vvv
 
   typescript:
     name: pnpm build

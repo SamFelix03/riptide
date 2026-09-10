@@ -16,6 +16,11 @@ import { RiptideSwapVMRouter } from "../../src/core/RiptideSwapVMRouter.sol";
 import { RiptideRebalanceRouter } from "../../src/core/RiptideRebalanceRouter.sol";
 import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
 import { RiptideConstants } from "../../src/core/RiptideConstants.sol";
+import { RiptideAuctionSettler } from "../../src/periphery/RiptideAuctionSettler.sol";
+import { RiptideQuoter } from "../../src/periphery/RiptideQuoter.sol";
+import { RiptideLens } from "../../src/periphery/RiptideLens.sol";
+import { RiptideBatchExecutor } from "../../src/periphery/RiptideBatchExecutor.sol";
+import { IRiptideBatchExecutor } from "../../src/interfaces/IRiptideBatchExecutor.sol";
 import { MockChainlinkAggregator } from "../mocks/MockChainlinkAggregator.sol";
 import { RiptideSystemDeployer } from "./RiptideSystemDeployer.sol";
 
@@ -29,6 +34,10 @@ abstract contract RiptideForkBase is Test {
     RiptideLvrFeeProvider internal provider;
     RiptideSwapVMRouter internal swapRouter;
     RiptideRebalanceRouter internal rebalanceRouter;
+    RiptideAuctionSettler internal settler;
+    RiptideQuoter internal quoter;
+    RiptideLens internal lens;
+    RiptideBatchExecutor internal batchExecutor;
     MockChainlinkAggregator internal feed;
 
     address internal maker = makeAddr("maker");
@@ -51,6 +60,10 @@ abstract contract RiptideForkBase is Test {
         provider = sys.provider;
         swapRouter = sys.swapRouter;
         rebalanceRouter = sys.rebalanceRouter;
+        settler = sys.settler;
+        quoter = sys.quoter;
+        lens = sys.lens;
+        batchExecutor = sys.batchExecutor;
 
         feed = new MockChainlinkAggregator();
         feed.setRound(2_000e8, block.timestamp);
@@ -189,5 +202,36 @@ abstract contract RiptideForkBase is Test {
     function _feeReported() internal view returns (uint24) {
         (uint24 fee,) = provider.controllerState(strategyKey);
         return fee;
+    }
+
+    function _shipRebalanceStrategy() internal {
+        uint40 auctionStart = uint40(block.timestamp);
+        ISwapVM.Order memory rebOrder = rebalanceRouter.buildRebalanceOrderWithAuctionStart(
+            maker, strategy, RiptideConstants.SWAP_ORDER_DEADLINE, 1e18, resolver, true, auctionStart
+        );
+        bytes32 rebHash = rebalanceRouter.hash(rebOrder);
+        strategyKey = RiptideStrategyCodec.runtimeStrategyKey(maker, strategy.salt);
+
+        tokenBase.mint(maker, 1000e18);
+        tokenQuote.mint(maker, 2_000_000e18);
+        vm.startPrank(maker);
+        tokenBase.approve(address(aqua), type(uint256).max);
+        tokenQuote.approve(address(aqua), type(uint256).max);
+        aqua.ship(address(rebalanceRouter), abi.encode(rebOrder), _tokens(), _amounts(100e18, 200_000e18));
+        swapRouter.registerStrategy(strategyKey, rebHash, strategy, maker);
+        rebalanceRouter.registerStrategy(
+            strategyKey, rebHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken)
+        );
+        rebalanceRouter.setRebalanceAuctionStart(strategyKey, auctionStart);
+        vm.stopPrank();
+        orderHash = rebHash;
+    }
+
+    function _executeBatch(IRiptideBatchExecutor.Route memory route) internal returns (uint256 inAmt, uint256 outAmt) {
+        tokenQuote.mint(route.payer, 10_000_000e18);
+        vm.startPrank(route.payer);
+        tokenQuote.approve(address(batchExecutor), type(uint256).max);
+        (inAmt, outAmt) = batchExecutor.execute(route);
+        vm.stopPrank();
     }
 }

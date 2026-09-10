@@ -8,6 +8,10 @@ import { RiptideVolatilityOracle } from "../../src/oracle/RiptideVolatilityOracl
 import { RiptideLvrFeeProvider } from "../../src/fees/RiptideLvrFeeProvider.sol";
 import { RiptideSwapVMRouter } from "../../src/core/RiptideSwapVMRouter.sol";
 import { RiptideRebalanceRouter } from "../../src/core/RiptideRebalanceRouter.sol";
+import { RiptideAuctionSettler } from "../../src/periphery/RiptideAuctionSettler.sol";
+import { RiptideQuoter } from "../../src/periphery/RiptideQuoter.sol";
+import { RiptideLens } from "../../src/periphery/RiptideLens.sol";
+import { RiptideBatchExecutor } from "../../src/periphery/RiptideBatchExecutor.sol";
 
 /// @notice Deterministic deploy order for circular router/oracle/provider deps.
 contract RiptideSystemDeployer is Test {
@@ -17,6 +21,10 @@ contract RiptideSystemDeployer is Test {
         RiptideLvrFeeProvider provider;
         RiptideSwapVMRouter swapRouter;
         RiptideRebalanceRouter rebalanceRouter;
+        RiptideAuctionSettler settler;
+        RiptideQuoter quoter;
+        RiptideLens lens;
+        RiptideBatchExecutor batchExecutor;
     }
 
     function deploy(address aqua, address owner) external returns (System memory s) {
@@ -32,6 +40,15 @@ contract RiptideSystemDeployer is Test {
         s.rebalanceRouter = new RiptideRebalanceRouter(
             aqua, address(0), owner, "RiptideRebalance", "1", address(s.kernel), address(s.oracle), address(s.provider)
         );
+
+        s.settler = new RiptideAuctionSettler(address(s.rebalanceRouter), address(s.kernel));
+        s.quoter = new RiptideQuoter(
+            address(s.swapRouter), address(s.rebalanceRouter), address(s.kernel), address(s.provider), address(s.oracle)
+        );
+        s.lens = new RiptideLens(
+            address(s.swapRouter), address(s.rebalanceRouter), aqua, address(s.provider), address(s.oracle)
+        );
+        s.batchExecutor = new RiptideBatchExecutor(address(s.swapRouter), address(s.rebalanceRouter));
 
         assertEq(address(s.swapRouter), swapRouterAddr);
         assertEq(address(s.rebalanceRouter), rebalanceRouterAddr);

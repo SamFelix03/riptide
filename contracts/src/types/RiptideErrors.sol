@@ -30,6 +30,7 @@ library RiptideErrors {
     error RiptideNoSurplus(int256 surplusWad);
     error RiptideAuctionWindowClosed(uint40 start, uint16 duration, uint256 nowTs);
     error RiptideStaleBaseline();
+    error RiptideRebalanceAuctionStartMissing(bytes32 strategyKey);
 
     // fee guard
     error RiptideFeeOutOfRange(uint256 feeBps, uint256 surplusBps);
