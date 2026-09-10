@@ -93,6 +93,7 @@ jobs:
       - run: pnpm --filter @riptide/solver-api test
       - run: pnpm --filter @riptide/resolver-core test
       - run: pnpm --filter @riptide/resolver-bot test
+      - run: pnpm --filter @riptide/vol-indexer test
       - run: pnpm --filter @riptide/frontend-api test
 
   reference:
@@ -157,15 +158,18 @@ jobs:
       - run: pnpm --filter @riptide/contracts validate-manifest deployments/31337.json
       - run: pnpm --filter @riptide/solver-api... build
       - run: pnpm --filter @riptide/resolver-bot... build
-      - name: Solver and resolver against Anvil
+      - run: pnpm --filter @riptide/vol-indexer... build
+      - name: Solver, resolver, and vol-indexer against Anvil
         env:
           RPC_URL: http://127.0.0.1:8545
           CHAIN_ID: "31337"
+          GOVERNED_INDEXER_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
         run: |
           pnpm --filter @riptide/solver-core test
           pnpm --filter @riptide/solver-api test
           pnpm --filter @riptide/resolver-core test
           pnpm --filter @riptide/resolver-bot test
+          pnpm --filter @riptide/vol-indexer test
 
   fork:
     name: fork smoke test
