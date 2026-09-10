@@ -12,10 +12,28 @@
     "subgraph:up": "node tools/subgraph/graph-up.mjs",
     "subgraph:down": "node tools/subgraph/graph-down.mjs",
     "subgraph:deploy-local": "node tools/subgraph/deploy-local.mjs",
-    "subgraph:deploy": "node tools/subgraph/deploy-studio.mjs"
+    "subgraph:deploy": "node tools/subgraph/deploy-studio.mjs",
+    "web:dev": "pnpm --filter @riptide/web dev",
+    "web:build": "pnpm --filter @riptide/web build"
   },
   "devDependencies": {
     "dotenv": "^17.4.2",
     "viem": "2.48.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "@reown/appkit": "1.8.23",
+      "@reown/appkit-adapter-wagmi": "1.8.23",
+      "@reown/appkit-common": "1.8.23",
+      "@reown/appkit-controllers": "1.8.23",
+      "@reown/appkit-polyfills": "1.8.23",
+      "@reown/appkit-scaffold-ui": "1.8.23",
+      "@reown/appkit-utils": "1.8.23",
+      "@reown/appkit-wallet": "1.8.23",
+      "@wagmi/connectors": "6.2.0",
+      "@wagmi/core": "2.22.1",
+      "viem": "2.48.4",
+      "wagmi": "2.19.5"
+    }
   }
 }
