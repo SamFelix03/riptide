@@ -30,6 +30,10 @@ export function handleShipped(event: Shipped): void {
   ensureProtocol();
   const strategy = loadOrCreateStrategy(event.params.strategyHash, event.params.maker);
   strategy.docked = false;
+  // Persist the raw abi.encode(ISwapVM.Order). This is the only on-chain source for a
+  // strategy's policy and salt, so without it the solver cannot price a strategy that is
+  // not hardcoded in the deployment manifest. Decoded off-chain by @riptide/solver-core.
+  strategy.orderBytes = event.params.strategy;
   strategy.save();
 }
 

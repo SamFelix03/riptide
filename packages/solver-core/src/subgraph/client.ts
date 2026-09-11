@@ -16,6 +16,8 @@ export type SubgraphStrategyRow = {
   reserveQuoteWad: string;
   aquaBase: string;
   aquaQuote: string;
+  /** Raw abi.encode(ISwapVM.Order) from Aqua's Shipped event; null for pre-upgrade rows. */
+  orderBytes: string | null;
 };
 
 export type SubgraphQueryResult = {
@@ -51,6 +53,7 @@ const ACTIVE_STRATEGIES_QUERY = `
       reserveQuoteWad
       aquaBase
       aquaQuote
+      orderBytes
       maker { id }
     }
   }

@@ -674,6 +674,23 @@ export class Strategy extends Entity {
     this.set("lastVersion", Value.fromBigInt(value));
   }
 
+  get orderBytes(): Bytes | null {
+    let value = this.get("orderBytes");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set orderBytes(value: Bytes | null) {
+    if (!value) {
+      this.unset("orderBytes");
+    } else {
+      this.set("orderBytes", Value.fromBytes(<Bytes>value));
+    }
+  }
+
   get fills(): FillLoader {
     return new FillLoader("Strategy", this.get("id")!.toString(), "fills");
   }

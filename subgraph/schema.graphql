@@ -53,6 +53,14 @@ type Strategy @entity(immutable: false) {
   aquaQuote: BigInt!
   docked: Boolean!
   lastVersion: BigInt!
+  """
+  Raw `abi.encode(ISwapVM.Order)` captured from Aqua's `Shipped` event. The order's
+  `data` field is the 226-byte RIPTIDE payload followed by the SwapVM program, so this
+  is the only place a strategy's fee/auction policy and salt can be recovered from —
+  Aqua exposes balance getters only, and the routers do not store the policy. The
+  solver decodes it to make maker-shipped strategies routable.
+  """
+  orderBytes: Bytes
   fills: [Fill!]! @derivedFrom(field: "strategy")
   rebalances: [Rebalance!]! @derivedFrom(field: "strategy")
   controllerStates: [ControllerState!]! @derivedFrom(field: "strategy")

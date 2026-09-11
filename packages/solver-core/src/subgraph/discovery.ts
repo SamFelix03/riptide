@@ -4,6 +4,7 @@ import type { PublicClient } from "viem";
 
 import { buildStrategyPreset, DEMO_MARKET } from "../presets.js";
 import { resolveFeedAddress } from "../feed.js";
+import { tryDecodeStrategyFromOrderBytes } from "../orderPayload.js";
 import type { DiscoveryProvider, DiscoveryResult } from "../discovery.js";
 import type { FreshnessMeta, MarketId, StrategyCandidate } from "../types.js";
 import { demoMarketId, queryActiveStrategies, queryMetaBlock } from "./client.js";
@@ -121,15 +122,24 @@ export class SubgraphDiscoveryProvider implements DiscoveryProvider {
           swapVersion: BigInt(state.runtime.version),
         });
       } else {
+        // A strategy shipped by a maker rather than seeded by the deploy script. Its
+        // policy and salt live only in the 226-byte payload inside the Aqua order, which
+        // the subgraph captures from the `Shipped` event. Decode it to get a real,
+        // priceable strategy. Rows indexed before that field existed (or non-RIPTIDE
+        // orders shipped to the same app) decode to null and are skipped — emitting a
+        // zeroed policy would make the Quoter revert and take down every aggregate quote.
         const makerAddr = row.maker.id as `0x${string}`;
+        const strategy = tryDecodeStrategyFromOrderBytes(row.orderBytes, makerAddr);
+        if (!strategy) continue;
+
         const orderHash = row.strategyHash as `0x${string}`;
         let state;
         try {
           state = await lens.read.strategyState([
             makerAddr,
             orderHash,
-            this.manifest.demoTokens.base,
-            this.manifest.demoTokens.quote,
+            strategy.baseToken,
+            strategy.quoteToken,
           ]);
         } catch {
           continue;
@@ -139,26 +149,26 @@ export class SubgraphDiscoveryProvider implements DiscoveryProvider {
         const aquaQuote = BigInt(state.aquaQuote);
         if (aquaBase === 0n || aquaQuote === 0n) continue;
 
+        // Price it exactly as a seeded strategy is priced: a 1-WAD probe through the
+        // real Quoter, which rebuilds the SwapVM order from this decoded policy. If the
+        // decode were wrong the order hash would differ and this call would revert.
+        let quote;
+        try {
+          const strategyTuple = toStrategyTuple(strategy, strategy.reserveBaseWad, strategy.reserveQuoteWad);
+          quote = await quoter.read.quoteSwap([strategyTuple, 0, 1_000_000_000_000_000_000n]);
+        } catch {
+          continue;
+        }
+
         candidates.push({
           id: row.strategyKey.slice(0, 10),
-          strategy: {
-            maker: makerAddr,
-            baseToken: this.manifest.demoTokens.base,
-            quoteToken: this.manifest.demoTokens.quote,
-            reserveBaseWad: BigInt(row.reserveBaseWad),
-            reserveQuoteWad: BigInt(row.reserveQuoteWad),
-            fee: { feeMin: 0n, feeMax: 0n, lambda: 0n, kp: 0n, ki: 0n, iMax: 0n, sigmaMin: 0n, sigmaMax: 0n },
-            auction: { beta: 0n, duration: 0, decay: 0n, antiSandwichPeriod: 0 },
-            oracle: { feed: feed, decimals: 8, maxStaleness: 3600 },
-            feeProvider: this.manifest.feeProvider,
-            salt: "0x0000000000000000000000000000000000000000000000000000000000000000",
-          },
+          strategy,
           strategyKey: row.strategyKey as `0x${string}`,
           orderHash,
-          reserveBaseWad: BigInt(row.reserveBaseWad),
-          reserveQuoteWad: BigInt(row.reserveQuoteWad),
-          feeBps: Number(state.sigmaWad > 0n ? state.runtime.feeReported : 0),
-          sigmaWad: BigInt(state.sigmaWad),
+          reserveBaseWad: strategy.reserveBaseWad,
+          reserveQuoteWad: strategy.reserveQuoteWad,
+          feeBps: Number(quote[2]),
+          sigmaWad: BigInt(quote[3]),
           aquaBase,
           aquaQuote,
           swapVersion: BigInt(state.runtime.version),
