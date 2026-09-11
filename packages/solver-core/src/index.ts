@@ -9,6 +9,7 @@ export * from "./certificate.js";
 export * from "./encode.js";
 export * from "./discovery.js";
 export * from "./feed.js";
+export * from "./orderPayload.js";
 export * from "./chainReady.js";
 export * from "./subgraph/client.js";
 export * from "./rpcEvents.js";
