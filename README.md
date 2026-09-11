@@ -202,15 +202,15 @@ The design choice worth calling out: the track permits modifying SwapVM. RIPTIDE
 | Aqua | [`0xa6e7714D9956D88C4f26C19a481b12bB60B90Ed2`](https://sepolia.basescan.org/address/0xa6e7714D9956D88C4f26C19a481b12bB60B90Ed2) |
 | RiptideSwapVMRouter | [`0xB017960ab6D10460bEc7a7F64A1Db4C887F89418`](https://sepolia.basescan.org/address/0xB017960ab6D10460bEc7a7F64A1Db4C887F89418) |
 | RiptideRebalanceRouter | [`0xC5c637DeA853ef5f0c26425F7C7EDC17039dA1E3`](https://sepolia.basescan.org/address/0xC5c637DeA853ef5f0c26425F7C7EDC17039dA1E3) |
-| RiptideRebalanceKernel | `0x033b27B1bb7Fc3A65144C1E87309250ad604dE9a` |
-| RiptideVolatilityOracle | `0x59884D4B7bC0E5dB7b3f4D7255F1350471d70901` |
-| RiptideLvrFeeProvider | `0x35B4d133D2904b7ED2Ef7bf57dd6182cf7bfEC49` |
-| RiptideAuctionSettler | `0xcA012FC3A5818FF3046e881703C22ad89E30D634` |
-| RiptideQuoter | `0x9298aEd285B58AcED4d07780886993838d5D2289` |
-| RiptideLens | `0xc7628aeE705977734B9e15C772A47C395A9909C4` |
+| RiptideRebalanceKernel | [`0x033b27B1bb7Fc3A65144C1E87309250ad604dE9a`](https://sepolia.basescan.org/address/0x033b27B1bb7Fc3A65144C1E87309250ad604dE9a) |
+| RiptideVolatilityOracle | [`0x59884D4B7bC0E5dB7b3f4D7255F1350471d70901`](https://sepolia.basescan.org/address/0x59884D4B7bC0E5dB7b3f4D7255F1350471d70901) |
+| RiptideLvrFeeProvider | [`0x35B4d133D2904b7ED2Ef7bf57dd6182cf7bfEC49`](https://sepolia.basescan.org/address/0x35B4d133D2904b7ED2Ef7bf57dd6182cf7bfEC49) |
+| RiptideAuctionSettler | [`0xcA012FC3A5818FF3046e881703C22ad89E30D634`](https://sepolia.basescan.org/address/0xcA012FC3A5818FF3046e881703C22ad89E30D634) |
+| RiptideQuoter | [`0x9298aEd285B58AcED4d07780886993838d5D2289`](https://sepolia.basescan.org/address/0x9298aEd285B58AcED4d07780886993838d5D2289) |
+| RiptideLens | [`0xc7628aeE705977734B9e15C772A47C395A9909C4`](https://sepolia.basescan.org/address/0xc7628aeE705977734B9e15C772A47C395A9909C4) |
 | RiptideBatchExecutor | [`0x53De9A6d6ec27cCBdb2F22912e0255af96EeDF29`](https://sepolia.basescan.org/address/0x53De9A6d6ec27cCBdb2F22912e0255af96EeDF29) |
 | Demo tokens | RBASE [`0xCd75c96a6659d94004EFBe528D95eAF933A916be`](https://sepolia.basescan.org/address/0xCd75c96a6659d94004EFBe528D95eAF933A916be) · RQUOTE [`0x5A2858D733295000199CA9030e4A094e9E9EF846`](https://sepolia.basescan.org/address/0x5A2858D733295000199CA9030e4A094e9E9EF846) |
-| Mock Chainlink feed | `0x92a149C90d5C43DF299F9db5F8F3c3cC7C7Edd0D` |
+| Mock Chainlink feed | [`0x92a149C90d5C43DF299F9db5F8F3c3cC7C7Edd0D`](https://sepolia.basescan.org/address/0x92a149C90d5C43DF299F9db5F8F3c3cC7C7Edd0D) |
 
 Deployed at block `46695284`. Subgraph: [`riptide` on Graph Studio](https://api.studio.thegraph.com/query/1758400/riptide/version/latest).
 
@@ -218,9 +218,9 @@ Three strategies are seeded and live, each with a different fee/auction policy:
 
 | | Maker | `feeMin` | `feeMax` | `beta` | Auction |
 |---|---|---|---|---|---|
-| S1 | `0xddDe7a54E430B1D85d24956156867fCe2407dC25` | 10_000 (0.1%) | 50_000 | 0.97 | 7200s, decay 0.995 |
-| S2 | `0xad5f8F512C9CD73c74B274D9e84e431ac631ED3C` | 30_000 (0.3%) | 500_000 | 0.95 | 3600s, decay 0.99 |
-| S3 | `0x9f7f68976C876DA2656FB835b051DE31Fc5863E6` | 50_000 (0.5%) | 800_000 | 0.90 | 1800s, decay 0.98 |
+| S1 | [`0xddDe7a54E430B1D85d24956156867fCe2407dC25`](https://sepolia.basescan.org/address/0xddDe7a54E430B1D85d24956156867fCe2407dC25) | 10_000 (0.1%) | 50_000 | 0.97 | 7200s, decay 0.995 |
+| S2 | [`0xad5f8F512C9CD73c74B274D9e84e431ac631ED3C`](https://sepolia.basescan.org/address/0xad5f8F512C9CD73c74B274D9e84e431ac631ED3C) | 30_000 (0.3%) | 500_000 | 0.95 | 3600s, decay 0.99 |
+| S3 | [`0x9f7f68976C876DA2656FB835b051DE31Fc5863E6`](https://sepolia.basescan.org/address/0x9f7f68976C876DA2656FB835b051DE31Fc5863E6) | 50_000 (0.5%) | 800_000 | 0.90 | 1800s, decay 0.98 |
 
 **Note on Aqua provenance.** 1inch has no Base Sepolia deployment, so the demo deploys its **own instance of the unmodified official `@1inch/aqua` v1.0.0 `Aqua.sol`** ([`RiptideDeployer.sol:38`](contracts/script/RiptideDeployer.sol#L38)). Integration against the *real* 1inch mainnet deployment is proven separately by the mainnet fork test above. Anvil manifest: [`deployments/31337.json`](deployments/31337.json).
 
