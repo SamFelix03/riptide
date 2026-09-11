@@ -1594,38 +1594,6 @@ export const riptideRebalanceRouterAbi = [
   },
   {
     "type": "error",
-    "name": "DutchAuctionExpired",
-    "inputs": [
-      {
-        "name": "currentTime",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "deadline",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "DutchAuctionShouldBeAppliedBeforeSwapAmountsComputed",
-    "inputs": [
-      {
-        "name": "amountIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "amountOut",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
     "name": "ETHTransferFailed",
     "inputs": []
   },
@@ -1703,6 +1671,38 @@ export const riptideRebalanceRouterAbi = [
         "name": "account",
         "type": "address",
         "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "RiptideAuctionMustPrecedeSwap",
+    "inputs": [
+      {
+        "name": "amountIn",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "RiptideAuctionWindowExpired",
+    "inputs": [
+      {
+        "name": "currentTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "deadline",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ]
   },

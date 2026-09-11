@@ -31,7 +31,7 @@ export const LANDING_STORY = {
   },
 } as const;
 
-const DOCS = "https://github.com/Marshal-AM/peptide/blob/main/docs";
+const DOCS = "https://github.com/SamFelix03/riptide/blob/main/docs";
 
 export const LANDING_MATH = {
   kicker: "The identities",

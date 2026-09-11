@@ -25,8 +25,8 @@ library BrokenRebalanceProgram {
 
         program = bytes.concat(
             useAuctionBalanceIn
-                ? _encode(RiptideConstants.OP_DUTCH_AUCTION_BALANCE_IN, auctionArgs)
-                : _encode(RiptideConstants.OP_DUTCH_AUCTION_BALANCE_OUT, auctionArgs),
+                ? _encode(RiptideConstants.OP_AUCTION_BALANCE_IN, auctionArgs)
+                : _encode(RiptideConstants.OP_AUCTION_BALANCE_OUT, auctionArgs),
             _encode(RiptideConstants.OP_DECAY, DecayArgsBuilder.build(s.auction.antiSandwichPeriod)),
             _encode(RiptideConstants.OP_XYCSWAP, ""),
             _encode(RiptideConstants.RIPTIDE_REBALANCE_OPCODE, rebalanceArgs),

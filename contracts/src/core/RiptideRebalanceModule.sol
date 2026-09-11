@@ -8,7 +8,7 @@ import { TransientLock, TransientLockLib } from "@1inch/solidity-utils/contracts
 import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 import { ControlsArgsBuilder } from "@1inch/swap-vm/instructions/Controls.sol";
 import { DecayArgsBuilder } from "@1inch/swap-vm/instructions/Decay.sol";
-import { DutchAuctionArgsBuilder } from "@1inch/swap-vm/instructions/DutchAuction.sol";
+import { RiptideAuctionArgs } from "./RiptideAuctionSchedule.sol";
 
 import { RiptideTypes } from "../types/RiptideTypes.sol";
 import { RiptideErrors } from "../types/RiptideErrors.sol";
@@ -202,14 +202,14 @@ contract RiptideRebalanceModule {
         bool useAuctionBalanceIn,
         uint40 auctionStart
     ) internal pure returns (bytes memory program) {
-        bytes memory auctionArgs = DutchAuctionArgsBuilder.build(auctionStart, s.auction.duration, s.auction.decay);
+        bytes memory auctionArgs = RiptideAuctionArgs.build(auctionStart, s.auction.duration, s.auction.decay);
         bytes memory rebalanceArgs = abi.encodePacked(s.auction.beta, uint128(staleInWad), resolver);
 
         program = bytes.concat(
             _encodeInstruction(RiptideConstants.OP_DEADLINE, ControlsArgsBuilder.buildDeadline(deadline)),
             useAuctionBalanceIn
-                ? _encodeInstruction(RiptideConstants.OP_DUTCH_AUCTION_BALANCE_IN, auctionArgs)
-                : _encodeInstruction(RiptideConstants.OP_DUTCH_AUCTION_BALANCE_OUT, auctionArgs),
+                ? _encodeInstruction(RiptideConstants.OP_AUCTION_BALANCE_IN, auctionArgs)
+                : _encodeInstruction(RiptideConstants.OP_AUCTION_BALANCE_OUT, auctionArgs),
             _encodeInstruction(RiptideConstants.OP_DECAY, DecayArgsBuilder.build(s.auction.antiSandwichPeriod)),
             _encodeInstruction(RiptideConstants.OP_XYCSWAP, ""),
             _encodeInstruction(RiptideConstants.RIPTIDE_REBALANCE_OPCODE, rebalanceArgs),

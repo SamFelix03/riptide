@@ -10,6 +10,7 @@ import { Aqua } from "@1inch/aqua/src/Aqua.sol";
 import { RiptideTypes } from "../src/types/RiptideTypes.sol";
 import { RiptideRebalanceRouter } from "../src/core/RiptideRebalanceRouter.sol";
 import { RiptideSwapVMRouter } from "../src/core/RiptideSwapVMRouter.sol";
+import { RiptideConstants } from "../src/core/RiptideConstants.sol";
 import { RiptideStrategyCodec } from "../src/core/RiptideStrategyCodec.sol";
 import { RiptideAuctionSettler } from "../src/periphery/RiptideAuctionSettler.sol";
 import { RiptideDemoToken } from "../src/demo/RiptideDemoToken.sol";
@@ -61,10 +62,17 @@ contract RebalanceScript is Script {
             strategy = ScriptConfig.strategyS2(maker, demoBase, demoQuote, address(feed), feeProvider, salt);
         }
 
-        (,,,, address resolver,) = ScriptConfig.anvilAccounts();
+        // The settler rebuilds the order with `msg.sender` as the resolver, so the
+        // resolver baked in here must be the account that will actually broadcast the
+        // settlement — otherwise the order hash differs and the lookup fails.
+        address resolver = vm.addr(ScriptConfig.RESOLVER_KEY);
         bytes32 strategyKey = RiptideStrategyCodec.runtimeStrategyKey(maker, salt);
-        ISwapVM.Order memory rebOrder =
-            rebalanceRouter.buildRebalanceOrder(maker, strategy, uint40(block.timestamp + 1 hours), 1e18, resolver, true);
+        // Pin the auction start: it is baked into the order bytes AND read from router
+        // storage by the settler. The two must agree.
+        uint40 auctionStart = uint40(block.timestamp);
+        ISwapVM.Order memory rebOrder = rebalanceRouter.buildRebalanceOrderWithAuctionStart(
+            maker, strategy, RiptideConstants.SWAP_ORDER_DEADLINE, 1e18, resolver, true, auctionStart
+        );
         bytes32 rebHash = rebalanceRouter.hash(rebOrder);
 
         vm.startBroadcast(makerKey);
@@ -79,14 +87,15 @@ contract RebalanceScript is Script {
         Aqua(aquaAddr).ship(address(rebalanceRouter), abi.encode(rebOrder), tokens, amounts);
         swapRouter.registerStrategy(strategyKey, rebHash, strategy, maker);
         rebalanceRouter.registerStrategy(strategyKey, rebHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken));
+        rebalanceRouter.setRebalanceAuctionStart(strategyKey, auctionStart);
         vm.stopBroadcast();
 
         RiptideAuctionSettler settler = RiptideAuctionSettler(settlerAddr);
         vm.startBroadcast(ScriptConfig.RESOLVER_KEY);
-        RiptideDemoToken(demoQuote).mint(resolver, 500_000e18);
+        RiptideDemoToken(demoQuote).mint(resolver, 500_000e18); // resolver == broadcaster
         RiptideDemoToken(demoQuote).approve(settlerAddr, type(uint256).max);
         RiptideTypes.RebalanceResult memory result =
-            settler.settleRebalance(maker, strategy, 1e18, 500_000e18, uint40(block.timestamp + 1 hours));
+            settler.settleRebalance(maker, strategy, 1e18, 500_000e18, RiptideConstants.SWAP_ORDER_DEADLINE);
         vm.stopBroadcast();
 
         console2.log("payToResolver", result.payToResolver);

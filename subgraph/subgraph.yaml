@@ -6,7 +6,7 @@ dataSources:
     name: Aqua
     network: anvil
     source:
-      address: "0xc9952Fc93Fa9bE383ccB39008c786b9f94eAc95d"
+      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
       abi: Aqua
       startBlock: 1
     mapping:
@@ -37,7 +37,7 @@ dataSources:
     name: RiptideSwapVMRouter
     network: anvil
     source:
-      address: "0x8B190573374637f144AC8D37375d97fd84cBD3a0"
+      address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
       abi: RiptideSwapVMRouter
       startBlock: 1
     mapping:
@@ -64,7 +64,7 @@ dataSources:
     name: RiptideLvrFeeProvider
     network: anvil
     source:
-      address: "0x70eE76691Bdd9696552AF8d4fd634b3cF79DD529"
+      address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
       abi: RiptideLvrFeeProvider
       startBlock: 1
     mapping:
@@ -86,7 +86,7 @@ dataSources:
     name: RiptideBatchExecutor
     network: anvil
     source:
-      address: "0xcD0048A5628B37B8f743cC2FeA18817A29e97270"
+      address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318"
       abi: RiptideBatchExecutor
       startBlock: 1
     mapping:
@@ -109,7 +109,7 @@ dataSources:
     name: RiptideRebalanceRouter
     network: anvil
     source:
-      address: "0x9385556B571ab92bf6dC9a0DbD75429Dd4d56F91"
+      address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
       abi: RiptideRebalanceRouter
       startBlock: 1
     mapping:

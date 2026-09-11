@@ -1,6 +1,6 @@
 import { encodeFunctionData } from "viem";
 import type { Strategy } from "@riptide/strategy-sdk";
-import { marketId } from "@riptide/strategy-sdk";
+import { encodeAquaDock, encodeAquaShip, marketId } from "@riptide/strategy-sdk";
 
 import {
   riptideAuctionSettlerAbi,
@@ -131,11 +131,11 @@ export function buildShipTxPlan(
     },
     {
       to: manifest.aqua,
-      data: encodeFunctionData({
-        abi: aquaAbi,
-        functionName: "ship",
-        args: [manifest.swapRouter, swapOrderBytes, [...tokens], [...amounts]],
-      }),
+      // Built with @1inch/aqua-sdk rather than a locally declared Aqua ABI.
+      data: encodeAquaShip(manifest.swapRouter, swapOrderBytes, [
+        { token: tokens[0]!, amount: amounts[0]! },
+        { token: tokens[1]!, amount: amounts[1]! },
+      ]),
       label: "Aqua.ship swap order",
     },
     {
@@ -153,11 +153,10 @@ export function buildShipTxPlan(
     steps.push(
       {
         to: manifest.aqua,
-        data: encodeFunctionData({
-          abi: aquaAbi,
-          functionName: "ship",
-          args: [manifest.rebalanceRouter, rebalanceLeg.orderBytes, [...tokens], [...amounts]],
-        }),
+        data: encodeAquaShip(manifest.rebalanceRouter, rebalanceLeg.orderBytes, [
+          { token: tokens[0]!, amount: amounts[0]! },
+          { token: tokens[1]!, amount: amounts[1]! },
+        ]),
         label: "Aqua.ship rebalance order",
       },
       {
@@ -209,11 +208,10 @@ export function buildDockTxPlan(
 ): TxPlan {
   const step: TxPlanStep = {
     to: manifest.aqua,
-    data: encodeFunctionData({
-      abi: aquaAbi,
-      functionName: "dock",
-      args: [manifest.swapRouter, orderHash, [manifest.demoTokens.base, manifest.demoTokens.quote]],
-    }),
+    data: encodeAquaDock(manifest.swapRouter, orderHash, [
+      manifest.demoTokens.base,
+      manifest.demoTokens.quote,
+    ]),
     label: "Aqua.dock strategy",
   };
 

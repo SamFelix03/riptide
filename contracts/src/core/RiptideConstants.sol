@@ -18,8 +18,10 @@ library RiptideConstants {
 
     // RIPTIDE extensions appended after stock table (runtime indices 34–37)
     uint8 public constant RIPTIDE_REBALANCE_OPCODE = 34;
-    uint8 public constant OP_DUTCH_AUCTION_BALANCE_IN = 35;
-    uint8 public constant OP_DUTCH_AUCTION_BALANCE_OUT = 36;
+    // RIPTIDE-owned auction schedule (see RiptideAuctionSchedule.sol for why these are
+    // ours and not swap-vm's limit-order-group DutchAuction opcodes).
+    uint8 public constant OP_AUCTION_BALANCE_IN = 35;
+    uint8 public constant OP_AUCTION_BALANCE_OUT = 36;
     uint8 public constant OP_ORACLE_PRICE_ADJUSTER = 37;
 
     uint8 public constant STOCK_OPCODE_COUNT = 34;
