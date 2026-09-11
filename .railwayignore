@@ -1,0 +1,34 @@
+# Railway builds the web app only. Everything below is either rebuilt in the
+# container, or belongs to the contracts/subgraph toolchains that the web build
+# does not use. Keeps the upload small and the build fast.
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+.git
+
+# Foundry: submodules + build artifacts (the web app consumes committed ABIs from
+# packages/contracts/src/abis, never contracts/out).
+contracts/lib
+contracts/out
+contracts/cache
+contracts/broadcast
+
+# Subgraph build artifacts (the deployed subgraph is served by Graph Studio).
+subgraph/build
+subgraph/generated
+subgraph/node_modules
+
+# Research PDFs and local scratch.
+docs/*.pdf
+.pnpm-store
+test-results
+playwright-report
+
+# Never ship keys.
+.env
+.env.*
+!.env.example
+deployments/*wallets*.json

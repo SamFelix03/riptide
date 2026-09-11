@@ -1,47 +1,47 @@
 {
   "chainId": 84532,
   "name": "base-sepolia",
-  "blockNumber": 46508029,
-  "commit": "926174f14b47113970b69641e62792746a188a90",
-  "aqua": "0x02d82c06A01141acd3cb97d9EFF11502505381aE",
-  "swapRouter": "0x066C49ea440eFA9428AA3695Ce31Bf9F5e03b5c9",
-  "rebalanceRouter": "0x16F696B29Af345A116786f93733C8Cb1D65B2aEe",
-  "kernel": "0xd7770744ab4642a83198c07F80C334b2d7518967",
-  "oracle": "0x327BD529060BCc6F2cf3771EdF5E37682e8F5DD2",
-  "feeProvider": "0x12A83BDfA3feDEd94C6Ea5A7c6C18aA93D76c1ad",
-  "settler": "0xCeAEB0493797133F9CC980a3c384051203D99252",
-  "quoter": "0x8B1485Ef1208Cc8e21a3cbc8380d5F5Fe669Eba3",
-  "lens": "0xC3A8cdC196E2137ad7eEa08bfdFA196ed2b9c954",
-  "batchExecutor": "0xDA1abB39b60B0d08F0e91D5A9b41e64540811Ae8",
+  "blockNumber": 46653287,
+  "commit": "a6f22f2b37d44d1f21e7069d250a3d69ad9f1b38",
+  "aqua": "0xa6e7714D9956D88C4f26C19a481b12bB60B90Ed2",
+  "swapRouter": "0x6Ad25D6111E1DfFD6d809cab5e4D012A95a341cD",
+  "rebalanceRouter": "0xF2f6AFf9d4BA247F479c67d1a9EB19A4a9C788bf",
+  "kernel": "0x24670F2a8d04665e1784Dbc3Eb8e58Fb6eACD9f2",
+  "oracle": "0x9E311E6C2694e475e9F44bB6Bc052823c6b647B3",
+  "feeProvider": "0x27fadE9f02fCC91152fdac73b55E1E05C2BB8620",
+  "settler": "0xf0c77bC88109e2c4c5A44B470f0da8221fBbee2D",
+  "quoter": "0x165Db89FbfAF978FbdBe322b0a1b34a9Bfef04b5",
+  "lens": "0x70237cf49964E1e42Ac2502D3D87d565E040891c",
+  "batchExecutor": "0xd86172dCEBC594005576a368D64a6c5901B3103e",
   "demoTokens": {
-    "base": "0x0c1931849c3D01fb6C3C7C395E7f6bc03e1fBB2b",
-    "quote": "0x98dbe041474a0960DAa51eAC9ABAc9313b8C60A5"
+    "base": "0xCd75c96a6659d94004EFBe528D95eAF933A916be",
+    "quote": "0x5A2858D733295000199CA9030e4A094e9E9EF846"
   },
+  "chainlinkFeed": "0x92a149C90d5C43DF299F9db5F8F3c3cC7C7Edd0D",
+  "demoResolver": "0xb57b23D53237573228B2E8b73A4A465F789a92DB",
   "seededStrategies": [
     {
       "id": "S1",
-      "maker": "0xEB1042F1eA9403871c53a5B1799D4dA68ae44C56",
+      "maker": "0xddDe7a54E430B1D85d24956156867fCe2407dC25",
       "salt": "0x0000000000000000000000000000000000000000000000000000000000000165",
-      "strategyKey": "0xafbd74cb9f9b73604567d9e9075a5678eef95f372844f83d4102bc5a8e7d359f",
-      "orderHash": "0x718f67f3793ff153145beba48a9958effc8f84c38ddeeaa9cf92b36d972e7237"
+      "strategyKey": "0x5464bc9c9633129771ccaba2f18e7bdc39a7120d359439f6ae8d512c34468984",
+      "orderHash": "0xb384df27d41b491b246f54c50d6f06b73c39ff7c36b4a7dd8a720015917558ef"
     },
     {
       "id": "S2",
-      "maker": "0x4d04C9Bdc1A4B864396d0Ef12F9B06391046dE75",
+      "maker": "0xad5f8F512C9CD73c74B274D9e84e431ac631ED3C",
       "salt": "0x0000000000000000000000000000000000000000000000000000000000000066",
-      "strategyKey": "0xba35ed48eac336546427dce80c581a42c4150efd62aca908697cf626187e9d21",
-      "orderHash": "0x9c2ed6dd2e54b5d729bcce916c27a6ed9eb70db77a944d9956144d3834b5e468"
+      "strategyKey": "0x06dd4189bfc38db41589f60545250d13348232295bcdef5cdab1156083ca6998",
+      "orderHash": "0x0c87ecd32ef7c1b25337634ac6175858d7af147ba2d7fa27e68944e058661478"
     },
     {
       "id": "S3",
-      "maker": "0x3Eaf09821634a80ce710A4E2fe3F0A1ae1FA6d03",
+      "maker": "0x9f7f68976C876DA2656FB835b051DE31Fc5863E6",
       "salt": "0x0000000000000000000000000000000000000000000000000000000000000067",
-      "strategyKey": "0x33e55f377443b652ca59673c5f7e60197a39de522e4dceb6c190ca31e00f1783",
-      "orderHash": "0x830c185b9e8378e9873608b6053099a74b0f5472f1b5bd545962746ec1f63de0"
+      "strategyKey": "0xd2f14ef9babe5f39565355c462b3c8dba5a51c344c0558fa94ed933447cdbbb7",
+      "orderHash": "0xe20fb61833f2b1c928fefdf4f611095407714c53836c312c643035d926f5e36a"
     }
   ],
-  "chainlinkFeed": "0x45E2FdD8FCfBe838F3fca53b19708b36E643ccD5",
-  "demoResolver": "0x4254ED501dd11B38f50505a37dfEDcc231185E61",
   "subgraphUrl": "https://api.studio.thegraph.com/query/1758400/riptide/version/latest",
   "rpcUrl": "https://sepolia.base.org",
   "explorerUrl": "https://sepolia.basescan.org"

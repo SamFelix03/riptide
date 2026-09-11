@@ -4,9 +4,6 @@ Catalog of every RIPTIDE specification: **which files exist**, **what each one
 owns**, and **what depends on what**. If a topic is not owned by exactly one
 document below, it is a gap — record it here rather than duplicating prose.
 
-This bootstrap commit includes the core specification set. Implementation-phase
-companions (walkthrough, env, resolutions, ln/exp bounds) land later.
-
 ## Reading order
 
 For a first pass, read in this order. Each builds on the previous.
@@ -34,6 +31,7 @@ For a first pass, read in this order. Each builds on the previous.
 | [`UI.md`](UI.md) | Every page/screen, the component list per page, the data contract, UI state machines, error surface, and the **user stories for every persona** (LP/maker, taker, resolver, analyst). | Solidity, solver internals. |
 | [`DIFF_ORACLE.md`](DIFF_ORACLE.md) | The Python arbitrary-precision oracle, the rounding contract, the committed test vectors, and the differential-testing rule. | On-chain code. |
 | [`FEATURES.md`](FEATURES.md) | The master list of **every feature** with a reference for each (paper, `refs/` file path, or doc section). The completeness gate: no feature without a reference. | New requirements (features must already be specified elsewhere). |
+| [`WALKTHROUGH.md`](WALKTHROUGH.md) | Seeded Base Sepolia demo recording script. | Protocol requirements. |
 
 ## Cross-cutting conventions
 
@@ -41,7 +39,9 @@ These hold across all documents and are defined once, where noted:
 
 - **Units and rounding.** WAD (1e18) fixed point; directional rounding "favors the
   maker". Defined in [`LVR_MATH.md`](LVR_MATH.md) §Integer Arithmetic Contract.
-  SwapVM fee units are `BPS = 1e7 = 100%`.
+  SwapVM fee units are `BPS = 1e7 = 100%` (verified in
+  [`FeeFlat.sol`](../../refs/swap-vm/src/instructions/FeeFlat.sol) and
+  [`FeeProtocol.sol`](../../refs/swap-vm/src/instructions/FeeProtocol.sol)).
 - **Orientation.** Native SwapVM registers are output-per-input; the UI displays
   quote-per-base. Conversion happens only at the market boundary. Defined in
   [`LVR_MATH.md`](LVR_MATH.md) §Units and Orientation.
@@ -70,14 +70,16 @@ These hold across all documents and are defined once, where noted:
 | `UI.md` | Normative |
 | `DIFF_ORACLE.md` | Normative |
 | `FEATURES.md` | Normative |
+| `WALKTHROUGH.md` | Draft |
 
 Root companions (not in `docs/`):
 
 | Document | Owns |
 | --- | --- |
 | [`../DEPENDENCY_LOCK.md`](../DEPENDENCY_LOCK.md) | Pinned Foundry/npm versions, commits, licenses |
-| [`../RESOLUTIONS.md`](../RESOLUTIONS.md) | `[confirm at build]` resolutions from the pinned SwapVM/Aqua commits |
+| [`../RESOLUTIONS.md`](../RESOLUTIONS.md) | `[confirm at build]` resolutions |
 | [`../LN_EXP_BOUNDS.md`](../LN_EXP_BOUNDS.md) | Solady ln/exp/pow domains used on-chain |
+| [`../ENV.md`](../ENV.md) | Secrets and operator overrides |
 
 ## Open items (whole project)
 
@@ -87,10 +89,10 @@ Tracked centrally so no single document silently owns an unresolved question:
    the LVR, Diamond, and fee papers were verified directly from the downloaded PDFs
    (title pages + page self-stamps, [`SOURCES.md`](SOURCES.md) §6); the *equations*
    were verified from full text. No residual action.
-2. **Official address/commit pinning — resolved.** Aqua registry and AquaSwapVMRouter
-   v1.0.2 addresses and commits are recorded in [`DEPENDENCY_LOCK.md`](../DEPENDENCY_LOCK.md)
-   and [`RESOLUTIONS.md`](../RESOLUTIONS.md) §4, and exercised by
-   `contracts/test/fork/Provenance.t.sol`.
+2. **Official address/commit pinning.** The Aqua and SwapVM addresses and commit
+   hashes in [`SYSTEM.md`](SYSTEM.md) were captured during research and
+   must be re-verified against the official 1inch deployment manifest before any
+   deployment.
 3. **Fee-curve constant.** The exact constant mapping estimated volatility to
    `feeBps` is a governed/tuned controller parameter, not a claimed universal
    formula; its calibration procedure is in [`LVR_MATH.md`](LVR_MATH.md) §Fee Controller.

@@ -9,6 +9,8 @@
   "scripts": {
     "build": "pnpm -r run build",
     "test": "pnpm -r run test --if-present",
+    "contracts:codegen": "pnpm --filter @riptide/contracts codegen",
+    "contracts:codegen:check": "pnpm --filter @riptide/contracts codegen:check",
     "subgraph:up": "node tools/subgraph/graph-up.mjs",
     "subgraph:down": "node tools/subgraph/graph-down.mjs",
     "subgraph:deploy-local": "node tools/subgraph/deploy-local.mjs",
@@ -20,10 +22,12 @@
     "demo:reset": "node tools/demo/reset.mjs",
     "deploy:testnet": "node tools/deploy/testnet.mjs",
     "audit:addresses": "node tools/audit/hardcoded-addresses.mjs",
-    "provenance:verify": "node tools/provenance/verify.mjs"
+    "provenance:verify": "node tools/provenance/verify.mjs",
+    "release:verify": "node scripts/verify-public-demo.mjs"
   },
   "devDependencies": {
     "dotenv": "^17.4.2",
+    "railway": "^3.11.0",
     "viem": "2.48.4"
   },
   "pnpm": {
