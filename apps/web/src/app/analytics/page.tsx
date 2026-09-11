@@ -18,6 +18,7 @@ export default function AnalyticsPage() {
   const stats = useQuery({ queryKey: ["recapture"], queryFn: () => api.getRecaptureStats("protocol") });
   const events = useQuery({ queryKey: ["events"], queryFn: () => api.streamEvents({ limit: 50 }) });
   const freshness = useQuery({ queryKey: ["freshness"], queryFn: () => api.getFreshness() });
+  const routes = useQuery({ queryKey: ["routes"], queryFn: () => api.listRoutes(20) });
 
   const fills = useMemo(() =>
     events.data?.filter((e): e is Extract<typeof e, { type: "SwapFilled" }> => e.type === "SwapFilled") ?? [],
@@ -145,6 +146,30 @@ export default function AnalyticsPage() {
             />
           </Card>
         ) : null}
+
+        <Card title="Atomic routes" testId="atomic-routes">
+          <p className="muted" style={{ marginTop: 0 }}>
+            Each row is one <code>RiptideBatchExecutor.execute</code> call: every fill in it
+            settled together, or the whole route reverted and the taker kept their funds.
+          </p>
+          {routes.data?.length ? (
+            <DataTable
+              headers={["Kind", "Fills", "Amount in", "Amount out", "Block", "Tx"]}
+              rows={routes.data.map((r) => [
+                r.kind === "ExactInput" ? "Exact in" : "Exact out",
+                `${r.fillCount} maker${r.fillCount === 1 ? "" : "s"}`,
+                formatWad(r.amountIn),
+                formatWad(r.amountOut),
+                r.blockNumber,
+                <TxLink key={r.routeId} hash={r.txHash} explorerUrl={network.explorerUrl} />,
+              ])}
+            />
+          ) : (
+            <p className="muted">
+              No atomic routes indexed yet. Execute a swap on the Swap Terminal to create one.
+            </p>
+          )}
+        </Card>
 
         <Card title="Event feed">
           {events.data?.length ? (

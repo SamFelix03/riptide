@@ -53,7 +53,7 @@ export const LANDING_MATH = {
     {
       kicker: "K3 · Mechanism 1",
       title: "Break-even fee",
-      body: "Break-even is LVR rate over turnover, then clamped into SwapVM units. The provider steps toward that target — it is not a guessed constant.",
+      body: "Break-even is the LVR rate divided by the maker’s flow-intensity set-point, then clamped into fee units. The provider steps toward that target — it is not a guessed constant.",
       equations: [
         String.raw`\phi^{\ast}=\frac{\sigma^{2}/8}{\lambda_{Q}}`,
         String.raw`\mathrm{feeTarget}=\mathrm{clamp}(\phi^{\ast}\cdot 10^{7},\;\mathrm{feeMin},\;\mathrm{feeMax})`,
@@ -118,7 +118,7 @@ export const MECHANISMS = {
   m2: {
     title: "Mechanism 2",
     subtitle: "Dutch Rebalance + \u03B2-Split",
-    body: "When external price gaps, RIPTIDE auctions the right to re-price the pool. Resolvers compete in a declining-price auction; the LP retains \u2265\u03B2 of the surplus (default 95%).",
+    body: "When external price gaps, RIPTIDE auctions the right to re-price the pool. Resolvers compete in a declining-price auction; the LP retains \u2265\u03B2 of the surplus. \u03B2 is set by the maker \u2014 the three live pools run 0.90, 0.95 and 0.97.",
   },
   loop: {
     title: "The Loop",
@@ -152,8 +152,8 @@ export const COMPARISON = [
     riptide: "Self-custody in Aqua; one explicit strategy per maker",
   },
   {
-    ordinary: "Forks or extends VM",
-    riptide: "Uses 1inch SwapVM exactly as designed",
+    ordinary: "Forks the VM to add behaviour",
+    riptide: "One custom instruction via SwapVM\u2019s own _instructions() override \u2014 no fork",
   },
   {
     ordinary: "Relies on external oracle alone",

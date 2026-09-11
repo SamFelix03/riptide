@@ -18,6 +18,7 @@ type ApiMethod =
   | "getControllerState"
   | "getRecaptureStats"
   | "streamEvents"
+  | "listRoutes"
   | "getFreshness";
 
 export class ApiClient {
@@ -94,6 +95,10 @@ export class ApiClient {
   getRecaptureStats(scope: Parameters<RiptideFrontendApi["getRecaptureStats"]>[0]) {
     return this.call("getRecaptureStats", [scope]);
   }
+  listRoutes(limit = 20) {
+    return this.call("listRoutes", [limit]);
+  }
+
   streamEvents(filter: Parameters<RiptideFrontendApi["streamEvents"]>[0]) {
     return this.call("streamEvents", [filter]);
   }

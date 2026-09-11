@@ -15,7 +15,7 @@ import { Counter, PrimaryCta, SegmentTabs } from "@/components/shared/primitives
 import { TokenBalanceReadout, TransactionStepper } from "@/components/shared/WalletComponents";
 import { DemoTokenFaucet } from "@/components/shared/DemoTokenFaucet";
 import { simulateTxPlanRemote } from "@/lib/api-client";
-import { formatAddress, formatBps, formatWad, wadToNumber } from "@/lib/format";
+import { formatAddress, formatBps, formatFeePercent, formatFeeBpsLabel, formatWad, wadToNumber } from "@/lib/format";
 import { useFrontendApi } from "@/providers/FrontendApiProvider";
 import { useWallet } from "@/providers/WalletProvider";
 
@@ -203,7 +203,7 @@ function SwapPageInner() {
                           <span style={{ fontSize: "0.45em" }}>{receiveSymbol}</span>
                         </p>
                         <div className="quote-meta">
-                          <span>Fee {quote.data.feeBpsApplied} bps</span>
+                          <span title={`${quote.data.feeBpsApplied} fee units (1e7 = 100%)`}>Fee {formatFeePercent(quote.data.feeBpsApplied)} · {formatFeeBpsLabel(quote.data.feeBpsApplied)}</span>
                           <span>σ {formatWad(quote.data.sigmaWad, 3)}</span>
                           {routeStats ? <span>Impact {formatBps(routeStats.impactBps)}</span> : null}
                           <FreshnessBadge {...quote.data.freshness} />
@@ -217,13 +217,13 @@ function SwapPageInner() {
                   <Card title="Route breakdown">
                     <p className="muted">Solver fill allocations from the live certificate — not a fee-weighted guess.</p>
                     <DataTable
-                      headers={["Maker", "Strategy", "Fee bps", "Amount in", "Amount out", "Eff. price"]}
+                      headers={["Maker", "Strategy", "Fee", "Amount in", "Amount out", "Eff. price"]}
                       rows={fills.map((f) => {
                         const price = fillPrice(f);
                         return [
                           <span key="m" title={f.maker}>{formatAddress(f.maker)}</span>,
                           f.candidateId,
-                          String(f.feeBps),
+                          formatFeePercent(f.feeBps),
                           formatWad(f.amountIn),
                           formatWad(f.amountOut),
                           price ? formatWad(price) : "—",

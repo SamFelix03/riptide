@@ -31,6 +31,14 @@ describe("Analytics page", () => {
     expect(await screen.findByTestId("honesty-panel")).toBeInTheDocument();
     expect((await screen.findAllByTestId("honesty-badge")).length).toBeGreaterThan(0);
   });
+
+  it("surfaces atomic multi-fill routes", async () => {
+    renderWithProviders(<AnalyticsPage />);
+    // RiptideBatchExecutor.execute settlements are indexed as Route entities; before this
+    // they were indexed but never shown anywhere in the app.
+    expect(await screen.findByTestId("atomic-routes")).toBeInTheDocument();
+    expect(await screen.findByText(/3 makers/)).toBeInTheDocument();
+  });
 });
 
 describe("NetworkGuard", () => {

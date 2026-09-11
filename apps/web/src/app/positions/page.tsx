@@ -13,7 +13,7 @@ import { NetworkGuard } from "@/components/shared/NetworkGuard";
 import { PrimaryCta } from "@/components/shared/primitives";
 import { AllowanceManager, TokenBalanceReadout, TransactionStepper } from "@/components/shared/WalletComponents";
 import { StrategyNotFoundState, TxLink } from "@/components/shared/States";
-import { formatAddress, formatHash, formatWad } from "@/lib/format";
+import { formatAddress, formatHash, formatFeePercent, formatWad } from "@/lib/format";
 import { useServerConfig } from "@/lib/useServerConfig";
 import { useFrontendApi } from "@/providers/FrontendApiProvider";
 import { useWallet } from "@/providers/WalletProvider";
@@ -121,7 +121,7 @@ function PositionsPageInner() {
                       const active = selected?.strategyHash === s.strategyHash;
                       return (
                         <Link key={s.strategyHash} href={href} className={active ? "is-selected" : undefined}>
-                          <span className="label-xs">{s.active ? "live" : "docked"} · {s.feeBps} bps</span>
+                          <span className="label-xs">{s.active ? "live" : "docked"} · {formatFeePercent(s.feeBps)}</span>
                           <p style={{ marginTop: "0.35rem" }}>{s.id}</p>
                           <p className="muted" style={{ marginTop: "0.25rem", fontSize: "0.75rem" }}>
                             {formatAddress(s.maker)} · σ {formatWad(s.sigmaWad, 3)}
@@ -144,14 +144,14 @@ function PositionsPageInner() {
                         {controller.data ? (
                           <div className="metric-row" style={{ marginTop: "0.85rem" }}>
                             <StatTile compact label="σ" value={formatWad(controller.data.sigmaWad, 3)} />
-                            <StatTile compact label="feeTarget" value={String(controller.data.feeTarget)} />
-                            <StatTile compact label="feeReported" value={String(controller.data.feeReported)} />
+                            <StatTile compact label="feeTarget" value={formatFeePercent(controller.data.feeTarget)} hint={`${controller.data.feeTarget} units`} />
+                            <StatTile compact label="feeReported" value={formatFeePercent(controller.data.feeReported)} hint={`${controller.data.feeReported} units`} />
                           </div>
                         ) : null}
                         {controller.data && controller.data.feeTarget !== controller.data.feeReported ? (
                           <p className="muted">Controller is converging: target ≠ reported.</p>
                         ) : controller.data ? (
-                          <p className="muted">Controller converged at {controller.data.feeReported}.</p>
+                          <p className="muted">Controller converged at {formatFeePercent(controller.data.feeReported)}.</p>
                         ) : null}
                         <div style={{ marginTop: "0.85rem" }}>
                           <ChartPanel
@@ -179,12 +179,12 @@ function PositionsPageInner() {
                       <Card title="Fill history">
                         {fillHistory.length > 0 ? (
                           <DataTable
-                            headers={["Block", "Amount in", "Amount out", "Fee bps", "Tx"]}
+                            headers={["Block", "Amount in", "Amount out", "Fee", "Tx"]}
                             rows={fillHistory.slice(0, 15).map((f) => [
                               f.blockNumber,
                               formatWad(f.amountIn),
                               formatWad(f.amountOut),
-                              String(f.feeBpsApplied),
+                              formatFeePercent(f.feeBpsApplied),
                               <TxLink key={f.id} hash={f.txHash} explorerUrl={network.explorerUrl} />,
                             ])}
                           />

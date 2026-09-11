@@ -33,14 +33,23 @@ export function formatHash(hash: string, head = 10, tail = 8): string {
   return `${hash.slice(0, head)}…${hash.slice(-tail)}`;
 }
 
+/** Group the integer part in thousands: "2000000" -> "2,000,000". */
+function groupThousands(whole: string): string {
+  const neg = whole.startsWith("-");
+  const digits = neg ? whole.slice(1) : whole;
+  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return neg ? `-${grouped}` : grouped;
+}
+
 export function formatWad(value: string | bigint, digits = 4): string {
   try {
     const v = typeof value === "bigint" ? value : BigInt(value);
     const formatted = formatUnits(v, 18);
-    if (!formatted.includes(".")) return formatted;
+    if (!formatted.includes(".")) return groupThousands(formatted);
     const [whole, frac = ""] = formatted.split(".");
     const trimmed = frac.slice(0, digits).replace(/0+$/, "");
-    return trimmed ? `${whole}.${trimmed}` : whole ?? formatted;
+    const head = groupThousands(whole ?? "0");
+    return trimmed ? `${head}.${trimmed}` : head;
   } catch {
     return String(value);
   }
@@ -53,6 +62,30 @@ export function formatBps(bps: number): string {
 /** Protocol fee units: 1e7 = 100%. Display as the studio's "bps" field (value / 1e5). */
 export function formatFeeField(value: bigint): string {
   return (Number(value) / 1e5).toFixed(2);
+}
+
+/**
+ * RIPTIDE fee units are 1e7 = 100%, so one basis point is 1_000 units.
+ * Render them as a percentage, which is what a trader actually reads:
+ * `30_000 -> "0.30%"`. Printing the raw number next to the word "bps" is off by 1000x.
+ */
+export function formatFeePercent(value: number | bigint | string, digits = 2): string {
+  try {
+    const n = typeof value === "number" ? value : Number(BigInt(value || "0"));
+    return `${((n / 1e7) * 100).toFixed(digits)}%`;
+  } catch {
+    return "—";
+  }
+}
+
+/** Same value expressed in true basis points, e.g. `30_000 -> "30 bps"`. */
+export function formatFeeBpsLabel(value: number | bigint | string): string {
+  try {
+    const n = typeof value === "number" ? value : Number(BigInt(value || "0"));
+    return `${(n / 1_000).toFixed(n % 1_000 === 0 ? 0 : 1)} bps`;
+  } catch {
+    return "—";
+  }
 }
 
 export function wadToNumber(value: string | bigint): number {

@@ -54,23 +54,28 @@ export function DataTable({
   selectedRow?: number;
   onRowClick?: (index: number) => void;
 }) {
+  // Wide numeric tables (route breakdown, fill history, atomic routes) overflow the card
+  // on phone widths. Scroll the table, not the page — the page body must never scroll
+  // sideways.
   return (
-    <table data-testid="data-table">
-      <thead>
-        <tr>{headers.map((h) => <th key={h}>{h}</th>)}</tr>
-      </thead>
-      <tbody>
-        {rows.map((row, i) => (
-          <tr
-            key={i}
-            className={onRowClick || selectedRow === i ? `selectable-row${selectedRow === i ? " is-selected" : ""}` : undefined}
-            onClick={onRowClick ? () => onRowClick(i) : undefined}
-          >
-            {row.map((cell, j) => <td key={j}>{cell}</td>)}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="table-scroll">
+      <table data-testid="data-table">
+        <thead>
+          <tr>{headers.map((h) => <th key={h}>{h}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr
+              key={i}
+              className={onRowClick || selectedRow === i ? `selectable-row${selectedRow === i ? " is-selected" : ""}` : undefined}
+              onClick={onRowClick ? () => onRowClick(i) : undefined}
+            >
+              {row.map((cell, j) => <td key={j}>{cell}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

@@ -651,10 +651,22 @@ li {
   color: var(--success);
 }
 
+/* Wide tables scroll inside their card instead of pushing the page sideways. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8125rem;
+}
+
+/* Keep numeric cells on one line so tabular alignment survives narrow viewports. */
+td,
+th {
+  white-space: nowrap;
 }
 
 th,

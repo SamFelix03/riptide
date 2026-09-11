@@ -59,7 +59,7 @@ const ACTS = [
   },
   {
     n: "06",
-    to: "https://github.com",
+    to: "https://github.com/Marshal-AM/peptide/blob/main/docs/INDEX.md",
     icon: BookOpen,
     title: "Docs",
     body: "Read the normative specification: product, math, contracts, architecture.",
