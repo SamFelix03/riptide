@@ -36,6 +36,7 @@
 |---|---|
 | [`contracts/README.md`](contracts/README.md) | **Contract-by-contract walkthrough** — every contract, both SwapVM program byte layouts, access control, invariants |
 | [`docs/TEST_GUIDE.md`](docs/TEST_GUIDE.md) | **Run it yourself** — local Anvil setup and how to exercise every feature |
+| [`subgraph/README.md`](subgraph/README.md) | **The Graph integration** — what is indexed, which Graph features are used, and why it is load-bearing |
 | [`docs/INDEX.md`](docs/INDEX.md) | Map of the whole spec set |
 | [`docs/SOURCES.md`](docs/SOURCES.md) | The honesty ledger: what was verified, what was kept, what was scrapped and why |
 | [`docs/PROTOCOL.md`](docs/PROTOCOL.md) | The product and protocol end to end |
@@ -172,7 +173,7 @@ You keep your tokens in your own wallet. Aqua holds an allowance record, not you
 
 **[`contracts/README.md`](contracts/README.md) — what each contract does.** A walkthrough of all 35 source files with line references: both program byte layouts instruction by instruction, the fee provider's determinism guarantee, the β-split maths, the router/module trust chain, the 226-byte payload format, the full access-control table, and the invariant suite.
 
-**[`docs/TEST_GUIDE.md`](docs/TEST_GUIDE.md) — run the whole thing locally.** From a clean clone to both mechanisms settling on a local Anvil chain, in three terminals. Covers the test suite and its negative controls, exercising each mechanism through scripts, driving the self-reinforcing loop by hand, the off-chain services, and a short section on verifying the 1inch integration specifically.
+**[`docs/TEST_GUIDE.md`](docs/TEST_GUIDE.md) — run the whole thing locally. Start here if you want to verify any claim in this README yourself.** From a clean clone to both mechanisms settling on a local Anvil chain, in three terminals. Covers the test suite and its negative controls, exercising each mechanism through scripts, driving the self-reinforcing loop by hand, the off-chain services, and a short section on verifying the 1inch integration specifically.
 
 ---
 
@@ -646,9 +647,33 @@ Allocation lives in [`packages/solver-core/src/optimize.ts`](packages/solver-cor
 
 ## 10. Indexing and the app
 
-**Subgraph** ([`subgraph/`](subgraph)) — 10 entities across 5 datasources (Aqua, both routers, the fee provider, the batch executor). `Fill`, `Rebalance`, `ControllerState` and `Route` are immutable; `Protocol`, `Market` and `Maker` carry running totals including cumulative β-recaptured. A `StrategyKeyIndex` entity bridges key-addressed events to hash-addressed strategies. Handlers filter Aqua events to the RIPTIDE app address. Matchstick tests cover creation and replay-idempotency for each datasource.
+### The Graph — how RIPTIDE uses it, and why it is load-bearing
 
-If no subgraph is configured, every read falls back to RPC `getLogs` from the deploy block ([`packages/solver-core/src/rpcEvents.ts`](packages/solver-core/src/rpcEvents.ts)) — the demo works without The Graph.
+RIPTIDE is a **single-maker micro-pool** design: there is no shared pool contract, each maker ships their own strategy into Aqua with their own curve, fee band and β. That is what makes the economics work, and it creates a discovery problem — to quote a swap you must first know which strategies exist, which are active, and what inventory each holds. There is no on-chain registry to enumerate: Aqua is keyed by `strategyHash` and exposes balance getters only, and an EVM transaction cannot scan every maker within gas.
+
+So the taker path is **discover off-chain, verify on-chain**. The subgraph answers "what exists"; the contracts re-derive every number that matters. A block-lag or mapping bug can make a stale route revert — it can never authorise a bad fill.
+
+**What is indexed** — `specVersion 1.0.0`, mapping `apiVersion 0.0.9`, five datasources and nine handlers across [`subgraph/subgraph.yaml`](subgraph/subgraph.yaml):
+
+| Datasource | Handlers |
+|---|---|
+| **Aqua** (1inch's own contract) | `Shipped`, `Docked`, `Pushed`, `Pulled` — strategy lifecycle and inventory are Aqua's events, not ours ([`src/mappings/aqua.ts`](subgraph/src/mappings/aqua.ts)) |
+| `RiptideSwapVMRouter` | `StrategyRuntimeInitialized`, `SwapFilled` ([`swap-router.ts`](subgraph/src/mappings/swap-router.ts)) |
+| `RiptideLvrFeeProvider` | `FeeControllerUpdated` — the σ → `feeTarget` → `feeReported` series ([`fee-provider.ts`](subgraph/src/mappings/fee-provider.ts)) |
+| `RiptideBatchExecutor` | `RouteExecuted` ([`batch-executor.ts`](subgraph/src/mappings/batch-executor.ts)) |
+| `RiptideRebalanceRouter` | `RebalanceSettled` — the β split ([`rebalance-router.ts`](subgraph/src/mappings/rebalance-router.ts)) |
+
+Eleven entities in [`schema.graphql`](subgraph/schema.graphql). `Fill`, `Rebalance`, `ControllerState` and `Route` are `@entity(immutable: true)` — append-only history, cheaper to index. `Protocol`, `Market` and `Maker` stay mutable because they carry running totals, including cumulative β-recaptured. `@derivedFrom` gives the reverse lookups without hand-maintained arrays.
+
+**The field that makes the product work.** A strategy's fee policy, auction policy and salt live *only* in the 226-byte payload inside the Aqua order — Aqua exposes no getter for it, and neither router stores it. The single place those bytes are ever visible is Aqua's `Shipped` event, so the mapping persists them as `Strategy.orderBytes`. The solver decodes them ([`packages/solver-core/src/orderPayload.ts`](packages/solver-core/src/orderPayload.ts)) and rebuilds a priceable strategy. **Without this, anything a real maker ships through the UI is invisible to takers** — only the hardcoded demo strategies would be routable. This is the clearest case of The Graph doing something in RIPTIDE that no RPC call can.
+
+**Freshness is returned, not hidden.** `_meta { block }` is compared against the chain head on every quote, and the UI renders the indexed block with a stale badge past a threshold — because a router built on an old snapshot can quote liquidity that has already moved.
+
+Queried through 10 typed queries in [`packages/solver-core/src/subgraph/client.ts`](packages/solver-core/src/subgraph/client.ts), consumed by the solver, the resolver bot, the MCP server and every analytics surface. Matchstick tests in [`subgraph/tests/`](subgraph/tests) cover creation and replay-idempotency per datasource.
+
+If no subgraph is configured, every read falls back to RPC `getLogs` from the deploy block ([`packages/solver-core/src/rpcEvents.ts`](packages/solver-core/src/rpcEvents.ts)) — the app still works, but maker-shipped strategies stop being routable, freshness degrades to unknown, and aggregates are recomputed by log-scanning on every request. The fallback is a correctness guarantee, not a substitute.
+
+> **[`subgraph/README.md`](subgraph/README.md) — visit it for the detailed explanation of the subgraph**: every entity and field, each Graph feature and where it is used, the `StrategyKeyIndex` two-identifier bridge, local Graph Node and Studio deployment, and the known gaps.
 
 **Web app** ([`apps/web`](apps/web)) — Next.js 15, six routes, one per persona:
 
