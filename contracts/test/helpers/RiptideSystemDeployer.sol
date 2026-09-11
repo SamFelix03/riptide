@@ -35,8 +35,7 @@ contract RiptideSystemDeployer is Test {
         s.kernel = new RiptideRebalanceKernel();
         s.oracle = new RiptideVolatilityOracle(rebalanceRouterAddr, swapRouterAddr, owner);
         s.provider = new RiptideLvrFeeProvider(s.oracle, swapRouterAddr, rebalanceRouterAddr, owner);
-        s.swapRouter =
-            new RiptideSwapVMRouter(aqua, address(0), owner, "RiptideSwap", "1", address(s.oracle), address(s.provider));
+        s.swapRouter = new RiptideSwapVMRouter(aqua, address(0), owner, "RiptideSwap", "1", address(s.oracle), address(s.provider));
         s.rebalanceRouter = new RiptideRebalanceRouter(
             aqua, address(0), owner, "RiptideRebalance", "1", address(s.kernel), address(s.oracle), address(s.provider)
         );

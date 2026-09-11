@@ -8,7 +8,7 @@ import { assertChainSeeded } from "@riptide/solver-core";
 
 import type { VolIndexerConfig } from "./config.js";
 
-export function createHealthApp(config: VolIndexerConfig): Hono {
+export function startHealthServer(config: VolIndexerConfig): void {
   const chain = { ...foundry, id: config.chainId };
   const client = createPublicClient({
     chain,
@@ -30,11 +30,7 @@ export function createHealthApp(config: VolIndexerConfig): Hono {
       return c.json({ status: "not ready", reason: err instanceof Error ? err.message : String(err) }, 503);
     }
   });
-  return app;
-}
 
-export function startHealthServer(config: VolIndexerConfig): void {
-  const app = createHealthApp(config);
   serve({ fetch: app.fetch, port: config.port }, (info) => {
     console.log(`vol-indexer health on :${info.port}`);
   });

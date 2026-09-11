@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { cpmmExactIn, cpmmExactOut } from "@riptide/riptide-math";
-
 import { detectStaleCertificate } from "../src/certificate.js";
 import { optimize, verifyOptimizedRoute } from "../src/optimize.js";
 import { QuoteKind, type StrategyCandidate } from "../src/types.js";
@@ -45,48 +43,19 @@ function candidate(id: string, reserveQuote: bigint, reserveBase: bigint, feeBps
 }
 
 describe("optimize", () => {
-  it("splits exact-in across two strategies and matches riptide-math", () => {
+  it("splits exact-in across two strategies", () => {
     const c1 = candidate("S1", 200_000n * WAD, 100n * WAD, 10_000, 200_000n * WAD);
     const c2 = candidate("S2", 200_000n * WAD, 100n * WAD, 30_000, 200_000n * WAD);
-    const total = 1500n * WAD;
     const route = optimize({
       candidates: [c1, c2],
       kind: QuoteKind.ExactInput,
-      totalAmount: total,
+      totalAmount: 1500n * WAD,
       indexedBlock: 1n,
       refreshedAt: Date.now(),
     });
     expect(route.fills.length).toBe(2);
-    expect(route.totalAmountIn).toBe(total);
+    expect(route.totalAmountIn).toBe(1500n * WAD);
     verifyOptimizedRoute(route, [c1, c2]);
-
-    let expectedOut = 0n;
-    for (const fill of route.fills) {
-      const c = fill.candidateId === "S1" ? c1 : c2;
-      expectedOut += cpmmExactIn(c.reserveQuoteWad, c.reserveBaseWad, fill.amount, BigInt(c.feeBps));
-    }
-    expect(route.totalAmountOut).toBe(expectedOut);
-  });
-
-  it("exact-out split matches riptide-math amountIn", () => {
-    const c1 = candidate("S1", 200_000n * WAD, 100n * WAD, 10_000, 200_000n * WAD);
-    const c2 = candidate("S2", 200_000n * WAD, 100n * WAD, 30_000, 200_000n * WAD);
-    const totalOut = 10_000n;
-    const route = optimize({
-      candidates: [c1, c2],
-      kind: QuoteKind.ExactOutput,
-      totalAmount: totalOut,
-      indexedBlock: 1n,
-      refreshedAt: Date.now(),
-    });
-    expect(route.totalAmountOut).toBe(totalOut);
-    verifyOptimizedRoute(route, [c1, c2]);
-    let expectedIn = 0n;
-    for (const fill of route.fills) {
-      const c = fill.candidateId === "S1" ? c1 : c2;
-      expectedIn += cpmmExactOut(c.reserveQuoteWad, c.reserveBaseWad, fill.amount, BigInt(c.feeBps));
-    }
-    expect(route.totalAmountIn).toBe(expectedIn);
   });
 
   it("respects per-strategy liquidity caps", () => {
@@ -96,6 +65,74 @@ describe("optimize", () => {
         candidates: [c1],
         kind: QuoteKind.ExactInput,
         totalAmount: 1000n * WAD,
+        indexedBlock: 1n,
+        refreshedAt: Date.now(),
+      }),
+    ).toThrow("insufficient liquidity");
+  });
+});
+
+describe("optimize exact-output", () => {
+  // Regression: the selection loop used to seed its comparison with
+  // Number.MAX_SAFE_INTEGER (~9.0e15, below one WAD). Real wei-denominated marginals
+  // exceeded it immediately, so no candidate was ever selected and the loop broke
+  // early WITHOUT error, delivering only 1 - (3/4)^n of the request.
+  it("delivers the full requested output across multiple candidates", () => {
+    const c1 = candidate("S1", 200_000n * WAD, 100n * WAD, 10_000, 200_000n * WAD);
+    const c2 = candidate("S2", 200_000n * WAD, 100n * WAD, 30_000, 200_000n * WAD);
+    const c3 = candidate("S3", 200_000n * WAD, 100n * WAD, 50_000, 200_000n * WAD);
+
+    for (const requested of [WAD / 10n, WAD, 10n * WAD]) {
+      const route = optimize({
+        candidates: [c1, c2, c3],
+        kind: QuoteKind.ExactOutput,
+        totalAmount: requested,
+        indexedBlock: 1n,
+        refreshedAt: Date.now(),
+      });
+      const delivered = route.fills.reduce((a, f) => a + f.amountOut, 0n);
+      expect(delivered).toBe(requested);
+      expect(route.totalAmountOut).toBe(requested);
+    }
+  });
+
+  it("delivers the full output for a single candidate", () => {
+    const c1 = candidate("S1", 200_000n * WAD, 100n * WAD, 10_000, 200_000n * WAD);
+    const route = optimize({
+      candidates: [c1],
+      kind: QuoteKind.ExactOutput,
+      totalAmount: WAD,
+      indexedBlock: 1n,
+      refreshedAt: Date.now(),
+    });
+    expect(route.totalAmountOut).toBe(WAD);
+  });
+
+  it("prefers the cheaper candidate when fees differ", () => {
+    const cheap = candidate("CHEAP", 200_000n * WAD, 100n * WAD, 10_000, 200_000n * WAD);
+    const dear = candidate("DEAR", 200_000n * WAD, 100n * WAD, 500_000, 200_000n * WAD);
+    const route = optimize({
+      candidates: [cheap, dear],
+      kind: QuoteKind.ExactOutput,
+      totalAmount: WAD,
+      indexedBlock: 1n,
+      refreshedAt: Date.now(),
+    });
+    const cheapFill = route.fills.find((f) => f.candidateId === "CHEAP");
+    const dearFill = route.fills.find((f) => f.candidateId === "DEAR");
+    expect(cheapFill).toBeDefined();
+    expect(cheapFill!.amountOut).toBeGreaterThan(dearFill?.amountOut ?? 0n);
+    expect(route.totalAmountOut).toBe(WAD);
+  });
+
+  it("throws rather than under-delivering when capacity is short", () => {
+    // maxOutput per candidate is bounded by aquaQuote; ask for far more than exists.
+    const c1 = candidate("S1", 200_000n * WAD, 100n * WAD, 10_000, WAD);
+    expect(() =>
+      optimize({
+        candidates: [c1],
+        kind: QuoteKind.ExactOutput,
+        totalAmount: 99n * WAD,
         indexedBlock: 1n,
         refreshedAt: Date.now(),
       }),

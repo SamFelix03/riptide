@@ -22,16 +22,16 @@ process.env.CHAIN_ID = String(ANVIL_CHAIN_ID);
 
 const RPC_URL = ANVIL_RPC_URL;
 const SUBGRAPH_URL = process.env.SUBGRAPH_URL;
-const HAS_INTEGRATION = process.env.RPC_URL !== undefined;
+const HAS_INTEGRATION = process.env.CI === "true" && SUBGRAPH_URL !== undefined;
 
 describe.skipIf(!HAS_INTEGRATION)("liquidity-mcp integration", () => {
-  const chain = { ...foundry, id: ANVIL_CHAIN_ID };
+  const config = { ...loadConfig(), rpcUrl: RPC_URL, subgraphUrl: SUBGRAPH_URL! };
+  const chain = { ...foundry, id: config.chainId };
   const client = createPublicClient({ chain, transport: http(RPC_URL) });
+  const manifest = loadManifest(config.chainId);
   const amount = 1_000_000_000_000_000_000n;
 
   it("get_riptide_executable_liquidity matches Quoter aggregate", async () => {
-    const config = { ...loadConfig(), rpcUrl: RPC_URL, subgraphUrl: SUBGRAPH_URL };
-    const manifest = loadManifest(config.chainId);
     await assertChainSeeded(client, manifest);
     const discovery = createDiscoveryProvider({ manifest, client, subgraphUrl: config.subgraphUrl });
     const { candidates } = await discovery.listCandidates(DEMO_MARKET);
@@ -62,13 +62,12 @@ describe.skipIf(!HAS_INTEGRATION)("liquidity-mcp integration", () => {
   });
 
   it("get_riptide_recapture_stats returns protocol data", async () => {
-    const config = { ...loadConfig(), rpcUrl: RPC_URL, subgraphUrl: SUBGRAPH_URL };
     const stats = await getRiptideRecaptureStats(config);
     expect(stats.indexedBlock).toBeGreaterThan(0);
+    expect(stats.perMarket.length).toBeGreaterThan(0);
   });
 
   it("compare_liquidity_vs_dex riptide branch matches tool 1", async () => {
-    const config = { ...loadConfig(), rpcUrl: RPC_URL, subgraphUrl: SUBGRAPH_URL };
     const direct = await getRiptideExecutableLiquidity(config, DEMO_MARKET, "ExactInput", amount);
     const compared = await compareLiquidityVsDex(config, DEMO_MARKET, "ExactInput", amount);
     expect(compared.riptide.amountOut).toBe(direct.amountOut);
@@ -76,5 +75,15 @@ describe.skipIf(!HAS_INTEGRATION)("liquidity-mcp integration", () => {
       expect(compared.dex).toBeNull();
       expect(compared.reason).toContain("GRAPH_API_KEY");
     }
+  });
+
+  it.skipIf(!process.env.GRAPH_API_KEY)("compare_liquidity_vs_dex returns Uniswap V3 pool data", async () => {
+    const compared = await compareLiquidityVsDex(config, DEMO_MARKET, "ExactInput", amount);
+    expect(compared.dex).not.toBeNull();
+    expect(compared.dex!.source).toBe("uniswap-v3-official-mainnet");
+    expect(compared.dex!.poolId).toMatch(/^0x/i);
+    expect(BigInt(compared.dex!.amountOut)).toBeGreaterThan(0n);
+    expect(compared.delta).not.toBeNull();
+    expect(compared.dexSource).toBe("uniswap-v3-official-mainnet");
   });
 });

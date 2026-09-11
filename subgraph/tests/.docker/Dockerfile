@@ -16,4 +16,7 @@ RUN curl -OL https://github.com/LimeChain/matchstick/releases/download/0.6.0/bin
 RUN mkdir matchstick
 WORKDIR /matchstick
 
+# Commenting out for now as it seems there's no need to copy when using bind mount
+# COPY ./ .
+
 CMD ../binary-linux-22 ${ARGS}

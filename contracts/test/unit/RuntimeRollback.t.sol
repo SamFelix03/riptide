@@ -2,27 +2,20 @@
 pragma solidity 0.8.30;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 
 import { RiptideForkBase } from "../helpers/RiptideForkBase.sol";
+import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
 
 contract RevertingQuoteToken is ERC20 {
-    bool public failTransfers;
-
     constructor() ERC20("RevertingQuote", "RQT") {}
 
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
     }
 
-    function setFailTransfers(bool fail) external {
-        failTransfers = fail;
-    }
-
-    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
-        if (failTransfers) revert("transferFrom reverts");
-        return super.transferFrom(from, to, amount);
+    function transferFrom(address, address, uint256) public pure override returns (bool) {
+        revert("transferFrom reverts");
     }
 }
 
@@ -62,7 +55,6 @@ contract RuntimeRollbackTest is RiptideForkBase {
             aqua.safeBalances(maker, address(swapRouter), orderHash, address(tokenBase), address(badQuote));
 
         badQuote.mint(taker, 1000e18);
-        badQuote.setFailTransfers(true);
         vm.startPrank(taker);
         badQuote.approve(address(swapRouter), 1000e18);
         vm.expectRevert();

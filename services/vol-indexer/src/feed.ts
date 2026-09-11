@@ -15,18 +15,6 @@ export type PriceObservation = {
   timestamp: number;
 };
 
-export function parsePriceSourceBody(
-  body: { priceWad?: string; price?: string; timestamp?: number },
-  fallbackTs: number,
-): PriceObservation {
-  const raw = body.priceWad ?? body.price;
-  if (!raw) throw new Error("PRICE_SOURCE_URL JSON must include priceWad or price");
-  return {
-    priceWad: BigInt(raw),
-    timestamp: body.timestamp ?? fallbackTs,
-  };
-}
-
 export async function fetchPriceObservation(
   manifest: DeploymentManifest,
   client: PublicClient,
@@ -37,8 +25,13 @@ export async function fetchPriceObservation(
     const res = await fetch(priceSourceUrl);
     if (!res.ok) throw new Error(`PRICE_SOURCE_URL failed: ${res.status}`);
     const body = (await res.json()) as { priceWad?: string; price?: string; timestamp?: number };
+    const raw = body.priceWad ?? body.price;
+    if (!raw) throw new Error("PRICE_SOURCE_URL JSON must include priceWad or price");
     const block = await client.getBlock();
-    return parsePriceSourceBody(body, Number(block.timestamp));
+    return {
+      priceWad: BigInt(raw),
+      timestamp: body.timestamp ?? Number(block.timestamp),
+    };
   }
 
   const feed = await resolveFeedAddress(manifest, { envFeed, client });

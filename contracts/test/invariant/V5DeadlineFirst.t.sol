@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
-
 import { RiptideForkBase } from "../helpers/RiptideForkBase.sol";
+import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
 import { RiptideMakerTraits } from "../../src/core/RiptideMakerTraits.sol";
 import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
@@ -17,7 +16,8 @@ contract V5DeadlineFirstTest is RiptideForkBase {
 
     function _shipRebalance(uint40 deadline) internal returns (ISwapVM.Order memory order) {
         strategy.feeProvider = address(provider);
-        order = rebalanceRouter.buildRebalanceOrder(maker, strategy, deadline, 1e18, resolver, true);
+        order =
+            rebalanceRouter.buildRebalanceOrder(maker, strategy, deadline, 1e18, resolver, true);
         orderHash = rebalanceRouter.hash(order);
         strategyKey = RiptideStrategyCodec.runtimeStrategyKey(maker, strategy.salt);
 
@@ -28,9 +28,7 @@ contract V5DeadlineFirstTest is RiptideForkBase {
         tokenQuote.approve(address(aqua), type(uint256).max);
         aqua.ship(address(rebalanceRouter), abi.encode(order), _tokens(), _amounts(100e18, 200_000e18));
         swapRouter.registerStrategy(strategyKey, orderHash, strategy, maker);
-        rebalanceRouter.registerStrategy(
-            strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken)
-        );
+        rebalanceRouter.registerStrategy(strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken));
         vm.stopPrank();
     }
 
@@ -72,9 +70,7 @@ contract V5DeadlineFirstTest is RiptideForkBase {
         tokenQuote.approve(address(aqua), type(uint256).max);
         aqua.ship(address(rebalanceRouter), abi.encode(order), _tokens(), _amounts(100e18, 200_000e18));
         swapRouter.registerStrategy(strategyKey, orderHash, strategy, maker);
-        rebalanceRouter.registerStrategy(
-            strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken)
-        );
+        rebalanceRouter.registerStrategy(strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken));
         vm.stopPrank();
 
         tokenQuote.mint(taker, 500_000e18);

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
+import { IProtocolFeeProvider } from "@1inch/swap-vm/instructions/interfaces/IProtocolFeeProvider.sol";
+
 import { RiptideTypes } from "../types/RiptideTypes.sol";
 import { RiptideErrors } from "../types/RiptideErrors.sol";
 import { FeeController } from "../libraries/FeeController.sol";
@@ -10,9 +12,18 @@ import { IRiptideEvents } from "../interfaces/IRiptideEvents.sol";
 
 /// @title RiptideLvrFeeProvider
 /// @notice Mechanism 1: dynamic LVR fee provider for FeeProtocol (CONTRACTS.md §8).
-/// @dev Implements pinned IProtocolFeeProvider.getFeeBpsAndRecipient (RESOLUTIONS.md §5).
 contract RiptideLvrFeeProvider is IRiptideLvrFeeProvider, IRiptideEvents {
+    /// @dev RIPTIDE denominates fees in 1e7 = 100% across the payload, the controller,
+    ///      the committed differential vectors and the UI.
     uint256 internal constant BPS = 1e7;
+
+    /// @dev Pinned swap-vm v1.0.2 denominates protocol fees in 1e9 = 100%
+    ///      (`Fee.sol` `BPS = 1e9`; `IProtocolFeeProvider` documents "1e9 = 100%").
+    ///      `getFeeBpsAndRecipient` is the single boundary between the two scales, so the
+    ///      conversion happens there and nowhere else. Without it the fee SwapVM actually
+    ///      charges is 100x smaller than the controller's target.
+    ///      `feeReported < BPS` (1e7), so the scaled value is < 1e9 and always fits uint32.
+    uint32 internal constant SWAPVM_FEE_SCALE = 100; // 1e9 / 1e7
 
     struct StrategyRegistration {
         bytes32 strategyKey;
@@ -75,11 +86,14 @@ contract RiptideLvrFeeProvider is IRiptideLvrFeeProvider, IRiptideEvents {
         }
     }
 
-    function getFeeBpsAndRecipient(bytes32 orderHash, address, address, address, address, bool)
-        external
-        view
-        returns (uint32 feeBps, address to)
-    {
+    function getFeeBpsAndRecipient(
+        bytes32 orderHash,
+        address,
+        address,
+        address,
+        address,
+        bool
+    ) external view returns (uint32 feeBps, address to) {
         StrategyRegistration memory reg = _byOrderHash[orderHash];
         if (reg.receiver == address(0)) {
             revert RiptideErrors.RiptideStrategyNotActive(orderHash);
@@ -91,7 +105,8 @@ contract RiptideLvrFeeProvider is IRiptideLvrFeeProvider, IRiptideEvents {
             revert RiptideErrors.RiptideFeeOutOfRange(reported, 0);
         }
 
-        return (uint32(reported), reg.receiver);
+        // Band guard above is in RIPTIDE units (1e7); the return value is in SwapVM units (1e9).
+        return (uint32(reported) * SWAPVM_FEE_SCALE, reg.receiver);
     }
 
     function advanceController(bytes32 strategyKey) external onlyRouter returns (uint24 feeReported, uint24 feeTarget_) {

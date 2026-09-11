@@ -22,7 +22,7 @@ const sample: Strategy = {
   auction: {
     beta: 950_000_000_000_000_000n,
     duration: 3600,
-    decay: 990_000_000_000_000n,
+    decay: 990_000_000_000_000_000n,
     antiSandwichPeriod: 300,
   },
   oracle: {

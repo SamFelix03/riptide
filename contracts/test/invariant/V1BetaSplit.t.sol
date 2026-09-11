@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
-
 import { RiptideForkBase } from "../helpers/RiptideForkBase.sol";
+import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
+import { RiptideMakerTraits } from "../../src/core/RiptideMakerTraits.sol";
 import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
 import { WadMulDiv } from "../../src/libraries/WadMulDiv.sol";
 import { DiamondSplitOverPay } from "../negative/DiamondSplitOverPay.sol";
 
-/// @notice V1: β-split conservation on the live rebalance path.
+/// @notice V1: β-split conservation on live rebalance path.
 contract V1BetaSplitTest is RiptideForkBase {
     function setUp() public {
         _deploySystem();
@@ -29,9 +29,7 @@ contract V1BetaSplitTest is RiptideForkBase {
         tokenQuote.approve(address(aqua), type(uint256).max);
         aqua.ship(address(rebalanceRouter), abi.encode(order), _tokens(), _amounts(100e18, 200_000e18));
         swapRouter.registerStrategy(strategyKey, orderHash, strategy, maker);
-        rebalanceRouter.registerStrategy(
-            strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken)
-        );
+        rebalanceRouter.registerStrategy(strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken));
         vm.stopPrank();
     }
 
@@ -47,8 +45,7 @@ contract V1BetaSplitTest is RiptideForkBase {
         vm.stopPrank();
 
         uint256 resolverGain = tokenQuote.balanceOf(resolver) - resolverBefore;
-        uint256 surplus = amountIn
-            - kernel.staleBaselineIn(1e18, strategy.reserveBaseWad, strategy.reserveQuoteWad, RiptideTypes.QuoteKind.ExactOutput);
+        uint256 surplus = amountIn - kernel.staleBaselineIn(1e18, strategy.reserveBaseWad, strategy.reserveQuoteWad, RiptideTypes.QuoteKind.ExactOutput);
         (uint256 pay, uint256 retain) = _split(surplus, strategy.auction.beta);
 
         assertEq(pay + retain, surplus);
@@ -67,7 +64,9 @@ contract V1BetaSplitTest is RiptideForkBase {
     }
 
     function _split(uint256 surplus, uint64 beta) internal pure returns (uint256 pay, uint256 retain) {
-        pay = WadMulDiv.mulDiv(WadMulDiv.WAD - beta, surplus, WadMulDiv.WAD, WadMulDiv.Rounding.Down);
+        pay = WadMulDiv.mulDiv(
+            WadMulDiv.WAD - beta, surplus, WadMulDiv.WAD, WadMulDiv.Rounding.Down
+        );
         retain = surplus - pay;
     }
 }

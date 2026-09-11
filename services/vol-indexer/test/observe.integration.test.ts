@@ -11,24 +11,24 @@ import { observeAllStrategies, observeStrategyRaw } from "../src/observe.js";
 
 process.env.CHAIN_ID = String(ANVIL_CHAIN_ID);
 
-const RPC_URL = process.env.RPC_URL ?? ANVIL_RPC_URL;
+const RPC_URL = ANVIL_RPC_URL;
 const INDEXER_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" as const;
 const BAD_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as const;
-const HAS_RPC = process.env.RPC_URL !== undefined;
+const HAS_RPC = process.env.CI === "true" || process.env.RPC_URL !== undefined;
 
 const WAD = 1_000_000_000_000_000_000n;
 
 describe.skipIf(!HAS_RPC)("vol-indexer integration", () => {
+  const manifest = loadManifest(31337);
+  const chain = { ...foundry, id: 31337 };
+  const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
+
   function wallet(key: `0x${string}`) {
-    const chain = { ...foundry, id: 31337 };
     const account = privateKeyToAccount(key);
     return createWalletClient({ chain, transport: http(RPC_URL), account });
   }
 
   it("observations move sigmaWad per EWMA", async () => {
-    const manifest = loadManifest(31337);
-    const chain = { ...foundry, id: 31337 };
-    const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
     const config = { ...loadConfig(), rpcUrl: RPC_URL, governedIndexerKey: INDEXER_KEY };
     const seeded = manifest.seededStrategies[0]!;
     const strategyKey = seeded.strategyKey as `0x${string}`;
@@ -51,18 +51,12 @@ describe.skipIf(!HAS_RPC)("vol-indexer integration", () => {
   });
 
   it("observeAllStrategies updates every seeded strategy", async () => {
-    const manifest = loadManifest(31337);
-    const chain = { ...foundry, id: 31337 };
-    const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
     const config = { ...loadConfig(), rpcUrl: RPC_URL, governedIndexerKey: INDEXER_KEY };
     const results = await observeAllStrategies(publicClient, wallet(INDEXER_KEY), config);
     expect(results.length).toBe(manifest.seededStrategies.length);
   });
 
   it("adversarial extreme price is clamped on-chain", async () => {
-    const manifest = loadManifest(31337);
-    const chain = { ...foundry, id: 31337 };
-    const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
     const config = { ...loadConfig(), rpcUrl: RPC_URL, governedIndexerKey: INDEXER_KEY };
     const seeded = manifest.seededStrategies[0]!;
     const strategyKey = seeded.strategyKey as `0x${string}`;
@@ -84,9 +78,6 @@ describe.skipIf(!HAS_RPC)("vol-indexer integration", () => {
   });
 
   it("unauthorized key reverts on observe", async () => {
-    const manifest = loadManifest(31337);
-    const chain = { ...foundry, id: 31337 };
-    const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
     const config = { ...loadConfig(), rpcUrl: RPC_URL, governedIndexerKey: BAD_KEY };
     const seeded = manifest.seededStrategies[0]!;
     const strategyKey = seeded.strategyKey as `0x${string}`;
@@ -98,9 +89,6 @@ describe.skipIf(!HAS_RPC)("vol-indexer integration", () => {
   });
 
   it("stale timestamp freezes sigma", async () => {
-    const manifest = loadManifest(31337);
-    const chain = { ...foundry, id: 31337 };
-    const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
     const config = { ...loadConfig(), rpcUrl: RPC_URL, governedIndexerKey: INDEXER_KEY };
     const seeded = manifest.seededStrategies[0]!;
     const strategyKey = seeded.strategyKey as `0x${string}`;

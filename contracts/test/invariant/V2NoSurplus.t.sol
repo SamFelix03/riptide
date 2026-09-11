@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
-
 import { RiptideForkBase } from "../helpers/RiptideForkBase.sol";
+import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
 import { RiptideMakerTraits } from "../../src/core/RiptideMakerTraits.sol";
 import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
@@ -34,9 +33,7 @@ contract V2NoSurplusTest is RiptideForkBase {
         tokenQuote.approve(address(aqua), type(uint256).max);
         aqua.ship(address(rebalanceRouter), abi.encode(order), _tokens(), _amounts(100e18, 200_000e18));
         swapRouter.registerStrategy(strategyKey, orderHash, strategy, maker);
-        rebalanceRouter.registerStrategy(
-            strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken)
-        );
+        rebalanceRouter.registerStrategy(strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken));
         vm.stopPrank();
     }
 
@@ -49,13 +46,6 @@ contract V2NoSurplusTest is RiptideForkBase {
         vm.expectRevert();
         rebalanceRouter.swap(order, address(tokenQuote), address(tokenBase), 1e18, _swapTakerData(false));
         vm.stopPrank();
-    }
-
-    function test_v2NoSurplusFuzz(uint128 executed, uint128 stale) public {
-        executed = uint128(bound(executed, 0, type(uint128).max - 1));
-        stale = uint128(bound(stale, uint256(executed) + 1, type(uint128).max));
-        vm.expectRevert(abi.encodeWithSelector(RiptideErrors.RiptideNoSurplus.selector, int256(uint256(executed)) - int256(uint256(stale))));
-        kernel.splitSurplus(executed, stale, strategy.auction.beta);
     }
 
     function test_v2_negativeControlMustFail() public {

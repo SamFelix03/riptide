@@ -49,7 +49,7 @@ describe("frontend-api errors", () => {
   });
 });
 
-const HAS_LIVE = process.env.RPC_URL !== undefined;
+const HAS_LIVE = process.env.CI === "true" && process.env.RPC_URL !== undefined;
 const HAS_SOLVER_API = HAS_LIVE && process.env.SOLVER_API_URL !== undefined;
 
 describe.skipIf(!HAS_SOLVER_API)("frontend-api live errors", () => {

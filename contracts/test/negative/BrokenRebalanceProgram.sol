@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
+import { RiptideConstants } from "../../src/core/RiptideConstants.sol";
 import { ControlsArgsBuilder } from "@1inch/swap-vm/instructions/Controls.sol";
 import { DecayArgsBuilder } from "@1inch/swap-vm/instructions/Decay.sol";
 import { DutchAuctionArgsBuilder } from "@1inch/swap-vm/instructions/DutchAuction.sol";
-
-import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
-import { RiptideConstants } from "../../src/core/RiptideConstants.sol";
+import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /// @notice Negative control: Deadline after balance-touching instructions (must fail V5).
 library BrokenRebalanceProgram {

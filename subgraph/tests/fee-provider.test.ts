@@ -1,5 +1,5 @@
 import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
-import { assert, clearStore, describe, test, beforeEach, newMockEvent as defaultMockEvent } from "matchstick-as/assembly/index";
+import { assert, clearStore, describe, test } from "matchstick-as/assembly/index";
 
 import { ControllerState, StrategyKeyIndex } from "../generated/schema";
 import { FeeControllerUpdated } from "../generated/RiptideLvrFeeProvider/RiptideLvrFeeProvider";
@@ -44,11 +44,17 @@ describe("fee provider", () => {
 });
 
 function newMockEvent(): ethereum.Event {
-  const event = defaultMockEvent();
-  event.address = Address.fromString("0x0000000000000000000000000000000000000006");
+  const event = new ethereum.Event();
+  event.address = Address.fromString("0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9");
   event.logIndex = BigInt.fromI32(0);
+  event.transaction = new ethereum.Transaction();
   event.transaction.hash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000003");
+  event.block = new ethereum.Block();
   event.block.number = BigInt.fromI32(200);
   event.block.timestamp = BigInt.fromI32(1_700_000_000);
   return event;
+}
+
+function beforeEach(fn: () => void): void {
+  fn();
 }

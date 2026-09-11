@@ -37,10 +37,10 @@ function patchEnvFile(envPath, key, value) {
 }
 
 async function waitForSubgraph(maxAttempts = 60) {
-  const queryUrlLocal = `${nodeUrl.replace(":8020", ":8000")}/subgraphs/name/${subgraphName}`;
+  const queryUrl = `${nodeUrl.replace(":8020", ":8000")}/subgraphs/name/${subgraphName}`;
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const res = await fetch(queryUrlLocal, {
+      const res = await fetch(queryUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ query: "{ _meta { block { number } } }" }),
@@ -54,7 +54,7 @@ async function waitForSubgraph(maxAttempts = 60) {
     }
     await new Promise((r) => setTimeout(r, 2000));
   }
-  throw new Error(`Subgraph not queryable at ${queryUrlLocal}. Check graph-node logs: pnpm subgraph:up`);
+  throw new Error(`Subgraph not queryable at ${queryUrl}. Check graph-node logs: pnpm subgraph:up`);
 }
 
 function run(cmd, opts = {}) {
@@ -69,6 +69,7 @@ run("node tools/subgraph/sync-from-manifest.mjs", { cwd: root, env: { ...process
 
 try {
   const health = await fetch(nodeUrl, { method: "GET" });
+  // Graph Node admin returns 405 on GET — that still means it's up.
   if (!health.ok && health.status !== 404 && health.status !== 405) throw new Error("bad status");
 } catch (err) {
   if (err instanceof Error && err.message === "bad status") {

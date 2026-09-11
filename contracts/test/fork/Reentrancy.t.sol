@@ -2,9 +2,8 @@
 pragma solidity 0.8.30;
 
 import { Test } from "forge-std/Test.sol";
-import { TransientLock, TransientLockLib } from "@1inch/solidity-utils/contracts/libraries/TransientLock.sol";
-
 import { RiptideErrors } from "../../src/types/RiptideErrors.sol";
+import { TransientLock, TransientLockLib } from "@1inch/solidity-utils/contracts/libraries/TransientLock.sol";
 
 /// @notice Reentrancy guard smoke test (instruction-level lock).
 contract ReentrancyLockHarness {

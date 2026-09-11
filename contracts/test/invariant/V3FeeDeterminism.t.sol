@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
-
 import { RiptideForkBase } from "../helpers/RiptideForkBase.sol";
+import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
+import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
 
 /// @notice V3: quote/swap fee determinism; provider unchanged in static quote.
 contract V3FeeDeterminismTest is RiptideForkBase {

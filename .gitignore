@@ -47,6 +47,17 @@ venv/
 !.env.example
 !**/.env.example
 
+# Local deployment overrides (keep manifest templates / examples)
+apps/web/.env
+# Any wallet key file, however the basename is hyphenated.
+# `*.wallets.json` alone missed `84532.e2e-wallets.json`, which leaked four demo keys.
+deployments/*wallets.json
+deployments/*wallets*.json
+
+# Graph Node local data
+subgraph/docker/data/
+subgraph/build/
+
 # IDE & OS
 .DS_Store
 Thumbs.db
@@ -60,19 +71,12 @@ Thumbs.db
 *.log
 npm-debug.log*
 pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Local vector regenerations (committed v1 files are tracked)
-test/vectors/*.local.json
+# Generated test vectors (optional local generation)
+test/vectors/*.json
 
 # Cursor / agent artifacts (local only)
 .cursor/
 agent-transcripts/
-
-# Local Anvil live manifest (example fixture stays tracked)
-deployments/*.json
-!deployments/*.example.json
-!deployments/84532.json
-deployments/*.wallets.json
-
-# Graph Node local data
-subgraph/docker/data/

@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
-
 import { RiptideForkBase } from "../helpers/RiptideForkBase.sol";
+import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 import { IRiptideBatchExecutor } from "../../src/interfaces/IRiptideBatchExecutor.sol";
 import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
 import { RiptideErrors } from "../../src/types/RiptideErrors.sol";
 import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
 
-/// @notice Multi-maker atomic batch routes (Gate 7).
+/// @notice Multi-maker atomic batch routes on fork.
 contract BatchExecutorTest is RiptideForkBase {
     address internal maker2 = makeAddr("maker2");
     bytes32 internal strategyKey2;
@@ -36,9 +35,7 @@ contract BatchExecutorTest is RiptideForkBase {
         tokenQuote.approve(address(aqua), type(uint256).max);
         aqua.ship(address(swapRouter), abi.encode(order1), _tokens(), _amounts(100e18, 200_000e18));
         swapRouter.registerStrategy(strategyKey, orderHash, strategy, maker);
-        rebalanceRouter.registerStrategy(
-            strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken)
-        );
+        rebalanceRouter.registerStrategy(strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken));
         vm.stopPrank();
     }
 
@@ -57,9 +54,7 @@ contract BatchExecutorTest is RiptideForkBase {
         tokenQuote.approve(address(aqua), type(uint256).max);
         aqua.ship(address(swapRouter), abi.encode(order2), _tokens(), _amounts(100e18, 200_000e18));
         swapRouter.registerStrategy(strategyKey2, orderHash2, s2, maker2);
-        rebalanceRouter.registerStrategy(
-            strategyKey2, orderHash2, RiptideStrategyCodec.marketId(s2.baseToken, s2.quoteToken)
-        );
+        rebalanceRouter.registerStrategy(strategyKey2, orderHash2, RiptideStrategyCodec.marketId(s2.baseToken, s2.quoteToken));
         vm.stopPrank();
     }
 

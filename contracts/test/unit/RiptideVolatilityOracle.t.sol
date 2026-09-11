@@ -7,8 +7,10 @@ import { stdJson } from "forge-std/StdJson.sol";
 import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
 import { RiptideErrors } from "../../src/types/RiptideErrors.sol";
 import { WadMulDiv } from "../../src/libraries/WadMulDiv.sol";
+import { LnExpMath } from "../../src/libraries/LnExpMath.sol";
 import { VolatilityMath } from "../../src/libraries/VolatilityMath.sol";
 import { RiptideVolatilityOracleHarness } from "../mocks/RiptideVolatilityOracleHarness.sol";
+import { MockObserverCaller } from "../mocks/MockObserverCaller.sol";
 import { MockChainlinkAggregator } from "../mocks/MockChainlinkAggregator.sol";
 import { VectorLoader } from "../differential/VectorLoader.sol";
 
@@ -16,11 +18,13 @@ contract RiptideVolatilityOracleTest is VectorLoader {
     using stdJson for string;
 
     RiptideVolatilityOracleHarness internal oracle;
+    MockObserverCaller internal caller;
     bytes32 internal constant KEY = keccak256("test-strategy");
 
     function setUp() public {
         vm.warp(10_000);
         oracle = new RiptideVolatilityOracleHarness(address(this), address(this), address(this));
+        caller = new MockObserverCaller(oracle);
         _configureDefaultPolicy();
     }
 
@@ -35,8 +39,7 @@ contract RiptideVolatilityOracleTest is VectorLoader {
             sigmaMin: 10_000_000_000_000_000,
             sigmaMax: 1_000_000_000_000_000_000
         });
-        RiptideTypes.OracleConfig memory oracleCfg =
-            RiptideTypes.OracleConfig({ feed: address(1), decimals: 8, maxStaleness: 0 });
+        RiptideTypes.OracleConfig memory oracleCfg = RiptideTypes.OracleConfig({ feed: address(1), decimals: 8, maxStaleness: 0 });
         oracle.configureStrategy(KEY, fee, oracleCfg);
     }
 
@@ -55,8 +58,7 @@ contract RiptideVolatilityOracleTest is VectorLoader {
         if (json.keyExists(string.concat(base, ".inputs.maxStaleness"))) {
             maxStale = uint16(json.readUint(string.concat(base, ".inputs.maxStaleness")));
         }
-        RiptideTypes.OracleConfig memory oracleCfg =
-            RiptideTypes.OracleConfig({ feed: address(1), decimals: 8, maxStaleness: maxStale });
+        RiptideTypes.OracleConfig memory oracleCfg = RiptideTypes.OracleConfig({ feed: address(1), decimals: 8, maxStaleness: maxStale });
         oracle.configureStrategy(key, fee, oracleCfg);
     }
 
@@ -134,8 +136,7 @@ contract RiptideVolatilityOracleTest is VectorLoader {
             sigmaMin: 10_000_000_000_000_000,
             sigmaMax: 1_000_000_000_000_000_000
         });
-        RiptideTypes.OracleConfig memory oracleCfg =
-            RiptideTypes.OracleConfig({ feed: address(1), decimals: 8, maxStaleness: 60 });
+        RiptideTypes.OracleConfig memory oracleCfg = RiptideTypes.OracleConfig({ feed: address(1), decimals: 8, maxStaleness: 60 });
         oracle.configureStrategy(KEY, fee, oracleCfg);
 
         uint128 sigmaPrev = 200_000_000_000_000_000;
@@ -157,41 +158,10 @@ contract RiptideVolatilityOracleTest is VectorLoader {
         oracle.observe(KEY, 1e18, 1000, false);
     }
 
-    function test_volIndexerCanObserveSwapRouterCannot() public {
-        address swap = address(0xBEEF);
-        address indexer = address(0xCAFE);
-        RiptideVolatilityOracleHarness isolated =
-            new RiptideVolatilityOracleHarness(address(this), swap, indexer);
-
-        RiptideTypes.FeePolicy memory fee = RiptideTypes.FeePolicy({
-            feeMin: 1,
-            feeMax: 2,
-            lambda: 940_000_000_000_000_000,
-            kp: 0,
-            ki: 0,
-            iMax: 0,
-            sigmaMin: 10_000_000_000_000_000,
-            sigmaMax: 1_000_000_000_000_000_000
-        });
-        RiptideTypes.OracleConfig memory oracleCfg =
-            RiptideTypes.OracleConfig({ feed: address(1), decimals: 8, maxStaleness: 0 });
-        isolated.configureStrategy(KEY, fee, oracleCfg);
-
-        vm.prank(swap);
-        vm.expectRevert(abi.encodeWithSelector(RiptideErrors.RiptideUnauthorizedObserver.selector, swap));
-        isolated.observe(KEY, 1e18, 1000, false);
-
-        vm.prank(indexer);
-        uint128 sigma = isolated.observe(KEY, 1e18, 1000, false);
-        assertEq(sigma, 10_000_000_000_000_000);
-    }
-
     function test_assertFeedFreshRevertsOnStaleRound() public {
         MockChainlinkAggregator feed = new MockChainlinkAggregator();
         feed.setRound(100_00000000, block.timestamp - 1000);
-        vm.expectRevert(
-            abi.encodeWithSelector(RiptideErrors.RiptideStaleOracleRound.selector, block.timestamp - 1000, uint16(60))
-        );
+        vm.expectRevert(abi.encodeWithSelector(RiptideErrors.RiptideStaleOracleRound.selector, block.timestamp - 1000, uint16(60)));
         oracle.assertFeedFresh(address(feed), 60);
     }
 

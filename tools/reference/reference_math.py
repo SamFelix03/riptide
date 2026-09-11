@@ -112,14 +112,10 @@ def cpmm_exact_out(
 def lvr_rate_general(sigma_wad: Decimal, price_wad: Decimal, value_wad: Decimal) -> Decimal:
     if sigma_wad < 0 or price_wad <= 0 or value_wad <= 0:
         raise DomainError("invalid lvr inputs")
+    # CPMM curvature: |V''(P)| = V / (4 P^2) with P in WAD; ell = (sigma^2 P^2 / 2) * |V''|
     v_double_prime = mul_div(value_wad, WAD, mul_div(price_wad, price_wad, WAD, Rounding.DOWN), Rounding.DOWN)
     v_double_prime = mul_div(v_double_prime, Decimal(1), Decimal(4), Rounding.DOWN)
-    sigma2_p2 = mul_div(
-        mul_div(sigma_wad, sigma_wad, WAD, Rounding.DOWN),
-        mul_div(price_wad, price_wad, WAD, Rounding.DOWN),
-        WAD,
-        Rounding.DOWN,
-    )
+    sigma2_p2 = mul_div(mul_div(sigma_wad, sigma_wad, WAD, Rounding.DOWN), mul_div(price_wad, price_wad, WAD, Rounding.DOWN), WAD, Rounding.DOWN)
     return mul_div(sigma2_p2, v_double_prime, Decimal(2) * WAD, Rounding.DOWN)
 
 

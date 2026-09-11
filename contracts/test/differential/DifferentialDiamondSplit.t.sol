@@ -3,13 +3,12 @@ pragma solidity 0.8.30;
 
 import { WadMulDiv } from "../../src/libraries/WadMulDiv.sol";
 import { DiamondSplit } from "../../src/libraries/DiamondSplit.sol";
-import { DutchPow } from "../../src/libraries/DutchPow.sol";
 import { VectorLoader } from "./VectorLoader.sol";
+import { DutchPow } from "./DutchPow.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
 contract DifferentialDiamondSplitTest is VectorLoader {
     using stdJson for string;
-
     function test_diamondSplitVectors() public view {
         string memory json = _loadVector("diamond_split_v1.json");
         uint256 n = _caseCount(json);

@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
+import { RiptideForkBase } from "../helpers/RiptideForkBase.sol";
 import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 
-import { RiptideForkBase } from "../helpers/RiptideForkBase.sol";
-
-/// @notice Runtime: unsolicited Aqua credit is visible to live-balance quotes.
+/// @notice Runtime: unsolicited Aqua credit reflected in quotes.
 contract RuntimeUnsolicitedCreditTest is RiptideForkBase {
     function setUp() public {
         _deploySystem();

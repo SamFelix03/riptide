@@ -7,7 +7,6 @@ import { TakerTraitsLib } from "@1inch/swap-vm/libs/TakerTraits.sol";
 import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 
 import { RiptideTypes } from "../src/types/RiptideTypes.sol";
-import { RiptideConstants } from "../src/core/RiptideConstants.sol";
 import { RiptideDemoToken } from "../src/demo/RiptideDemoToken.sol";
 import { MockChainlinkAggregator } from "../test/mocks/MockChainlinkAggregator.sol";
 import { RiptideDeployer } from "./RiptideDeployer.sol";
@@ -22,11 +21,11 @@ contract DemoScript is Script {
 
         vm.startBroadcast(ScriptConfig.DEPLOYER_KEY);
         RiptideDeployer.System memory sys = RiptideDeployer.deployFresh(deployer, deployer);
-        MockChainlinkAggregator feed = new MockChainlinkAggregator();
-        feed.setRound(2_000e8, block.timestamp);
         vm.stopBroadcast();
 
         ScriptConfig.Manifest memory m = _manifest(sys);
+        MockChainlinkAggregator feed = new MockChainlinkAggregator();
+        feed.setRound(2_000e8, block.timestamp);
 
         RiptideSeedLib.SeedResult memory seeded = RiptideSeedLib.seedAll(m, maker1, maker2, maker3, feed);
         _demoSwap(m, sys, maker2, taker, feed);
@@ -44,7 +43,7 @@ contract DemoScript is Script {
             maker2, m.demoBase, m.demoQuote, address(feed), m.feeProvider, bytes32(uint256(2))
         );
         ISwapVM.Order memory order =
-            sys.swapRouter.buildSwapOrder(maker2, strategy, RiptideConstants.SWAP_ORDER_DEADLINE);
+            sys.swapRouter.buildSwapOrder(maker2, strategy, uint40(block.timestamp + 7 days));
 
         uint256 amountIn = 1000e18;
         vm.broadcast(ScriptConfig.DEPLOYER_KEY);

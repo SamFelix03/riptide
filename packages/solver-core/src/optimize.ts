@@ -1,6 +1,6 @@
 import { cpmmExactIn, cpmmExactOut } from "@riptide/riptide-math";
 
-import { marginalInPerOut, quoteAt } from "./marginal.js";
+import { invertMarginalExactIn, marginalInPerOut, marginalOutPerIn, quoteAt, UNSERVICEABLE_MARGINAL } from "./marginal.js";
 import { QuoteKind, MAX_FILLS, type FillAllocation, type OptimizedRoute, type RouteCertificate, type StrategyCandidate } from "./types.js";
 
 export type OptimizeInput = {
@@ -130,13 +130,16 @@ function optimizeExactOut(candidates: StrategyCandidate[], totalOut: bigint, ind
 
   while (remaining > 0n) {
     let bestIdx = -1;
-    let bestMarginal = Number.MAX_SAFE_INTEGER as unknown as bigint;
+    // Must start unset, not at a numeric sentinel: real marginals are wei-denominated
+    // and routinely exceed any Number-range constant.
+    let bestMarginal: bigint | null = null;
     for (let i = 0; i < active.length; i++) {
       const c = active[i]!;
       const cur = amounts[i]!;
       if (cur >= outCaps[i]!) continue;
       const m = marginalInPerOut(c.reserveQuoteWad, c.reserveBaseWad, cur + 1n, BigInt(c.feeBps));
-      if (m < bestMarginal) {
+      if (m >= UNSERVICEABLE_MARGINAL) continue;
+      if (bestMarginal === null || m < bestMarginal) {
         bestMarginal = m;
         bestIdx = i;
       }
@@ -151,6 +154,10 @@ function optimizeExactOut(candidates: StrategyCandidate[], totalOut: bigint, ind
       remaining = totalOut - amounts.reduce((a, b) => a + b, 0n);
     }
   }
+
+  // Never return a short route silently. The exact-in path throws here too; without this
+  // the caller's requested amount was quietly replaced by whatever the loop managed to fill.
+  if (remaining > 0n) throw new Error("insufficient liquidity");
 
   return buildFills(active, QuoteKind.ExactOutput, amounts, indexedBlock, refreshedAt);
 }

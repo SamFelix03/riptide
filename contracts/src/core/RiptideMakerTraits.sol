@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { MakerTraits } from "@1inch/swap-vm/libs/MakerTraits.sol";
+import { MakerTraits, MakerTraitsLib } from "@1inch/swap-vm/libs/MakerTraits.sol";
 import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 
 import { RiptideStrategyCodec } from "./RiptideStrategyCodec.sol";

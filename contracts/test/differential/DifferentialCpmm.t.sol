@@ -2,13 +2,12 @@
 pragma solidity 0.8.30;
 
 import { WadMulDiv } from "../../src/libraries/WadMulDiv.sol";
-import { CpmmMath } from "../../src/libraries/CpmmMath.sol";
 import { VectorLoader } from "./VectorLoader.sol";
+import { CpmmMath } from "./CpmmMath.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
 contract DifferentialCpmmTest is VectorLoader {
     using stdJson for string;
-
     function test_cpmmVectors() public view {
         string memory json = _loadVector("cpmm_swap_v1.json");
         uint256 n = _caseCount(json);

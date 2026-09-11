@@ -7,7 +7,6 @@ import { stdJson } from "forge-std/StdJson.sol";
 
 contract DifferentialFeeControllerTest is VectorLoader {
     using stdJson for string;
-
     function test_feeControllerVectors() public view {
         string memory json = _loadVector("fee_controller_v1.json");
         uint256 n = _caseCount(json);
@@ -35,8 +34,7 @@ contract DifferentialFeeControllerTest is VectorLoader {
                 feeMin: uint24(json.readUint(string.concat(base, ".inputs.feeMin"))),
                 feeMax: uint24(json.readUint(string.concat(base, ".inputs.feeMax")))
             });
-            (uint24 feeReported, int192 integral) =
-                FeeController.piStep(state, uint24(json.readUint(string.concat(base, ".inputs.feeTarget"))));
+            (uint24 feeReported, int192 integral) = FeeController.piStep(state, uint24(json.readUint(string.concat(base, ".inputs.feeTarget"))));
             _assertUintOutput(feeReported, json, string.concat(base, ".outputs.feeReported"));
             _assertUintOutput(uint256(int256(integral)), json, string.concat(base, ".outputs.integral"));
         }

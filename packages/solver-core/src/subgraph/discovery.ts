@@ -7,7 +7,7 @@ import { resolveFeedAddress } from "../feed.js";
 import { tryDecodeStrategyFromOrderBytes } from "../orderPayload.js";
 import type { DiscoveryProvider, DiscoveryResult } from "../discovery.js";
 import type { FreshnessMeta, MarketId, StrategyCandidate } from "../types.js";
-import { demoMarketId, queryActiveStrategies, queryMetaBlock } from "./client.js";
+import { DEMO_MARKET_ID, demoMarketId, queryActiveStrategies, queryMetaBlock } from "./client.js";
 
 export type SubgraphDiscoveryConfig = {
   subgraphUrl: string;
@@ -209,7 +209,7 @@ export async function checkSubgraphReachable(subgraphUrl: string): Promise<boole
   }
 }
 
-export async function listActiveStrategyKeys(subgraphUrl: string, marketIdHex: string): Promise<Set<string>> {
+export async function listActiveStrategyKeys(subgraphUrl: string, marketIdHex = DEMO_MARKET_ID): Promise<Set<string>> {
   const data = await queryActiveStrategies(subgraphUrl, marketIdHex);
   return new Set(data.strategies.map((s) => s.strategyKey.toLowerCase()));
 }

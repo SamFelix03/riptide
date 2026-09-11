@@ -4,8 +4,8 @@ pragma solidity 0.8.30;
 import { RiptideErrors } from "../../src/types/RiptideErrors.sol";
 import { LnExpMath } from "../../src/libraries/LnExpMath.sol";
 import { DiamondSplit } from "../../src/libraries/DiamondSplit.sol";
-import { CpmmMath } from "../../src/libraries/CpmmMath.sol";
 import { VectorLoader } from "./VectorLoader.sol";
+import { CpmmMath } from "./CpmmMath.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
 contract DifferentialInvalidDomainsTest is VectorLoader {

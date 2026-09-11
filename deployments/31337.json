@@ -1,0 +1,47 @@
+{
+  "chainId": 31337,
+  "name": "anvil",
+  "blockNumber": 313,
+  "commit": "local",
+  "aqua": "0xc9952Fc93Fa9bE383ccB39008c786b9f94eAc95d",
+  "swapRouter": "0x8B190573374637f144AC8D37375d97fd84cBD3a0",
+  "rebalanceRouter": "0x9385556B571ab92bf6dC9a0DbD75429Dd4d56F91",
+  "kernel": "0xDde063eBe8E85D666AD99f731B4Dbf8C98F29708",
+  "oracle": "0xD5724171C2b7f0AA717a324626050BD05767e2C6",
+  "feeProvider": "0x70eE76691Bdd9696552AF8d4fd634b3cF79DD529",
+  "settler": "0x162700d1613DfEC978032A909DE02643bC55df1A",
+  "quoter": "0x67aD6EA566BA6B0fC52e97Bc25CE46120fdAc04c",
+  "lens": "0x114e375B6FCC6d6fCb68c7A1d407E652C54F25FB",
+  "batchExecutor": "0xcD0048A5628B37B8f743cC2FeA18817A29e97270",
+  "demoTokens": {
+    "base": "0x976C214741b4657bd99DFD38a5c0E3ac5C99D903",
+    "quote": "0x8bEe2037448F096900Fd9affc427d38aE6CC0350"
+  },
+  "seededStrategies": [
+    {
+      "id": "S1",
+      "maker": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000301",
+      "strategyKey": "0x47f4b0601d809474d75d17cb77648ce9f0ba80ad1f89907648aafacb27d394d7",
+      "orderHash": "0xb8f2d37290f3e595b5b7bf40e88f5cc0c27eb08eca9bad57de34528728e53500"
+    },
+    {
+      "id": "S2",
+      "maker": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000002",
+      "strategyKey": "0xbd19ff506d92b45639170e62f1a12073921a4358c3ccd05d4584519f78d65103",
+      "orderHash": "0x03ef52584b404bb259440f9b805db51b44a5bebfa0081ff4416713db8d8ac17d"
+    },
+    {
+      "id": "S3",
+      "maker": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000003",
+      "strategyKey": "0x53c8a5ff8e9eee17be03169c30dedc5882673fcdd4fbdb8a32244385ed269978",
+      "orderHash": "0x70579062fdbc75e60fde18dc03500e939c1f81ae84d2963ed211be76a5253332"
+    }
+  ],
+  "chainlinkFeed": "0x942ED2fa862887Dc698682cc6a86355324F0f01e",
+  "subgraphUrl": "http://localhost:8000/subgraphs/name/riptide/riptide-anvil",
+  "rpcUrl": "http://127.0.0.1:8545",
+  "explorerUrl": ""
+}

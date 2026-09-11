@@ -6,15 +6,13 @@ import { describe, expect, it } from "vitest";
 import { ANVIL_CHAIN_ID, ANVIL_RPC_URL, getRiptideDemoToken, loadManifest, riptideBatchExecutorAbi } from "@riptide/contracts";
 
 import { createApp } from "../src/server.js";
-import type { SolverConfig } from "../src/config.js";
+import { loadConfig } from "../src/config.js";
 
-const RPC_URL = process.env.RPC_URL ?? ANVIL_RPC_URL;
+process.env.CHAIN_ID = String(ANVIL_CHAIN_ID);
+
+const RPC_URL = ANVIL_RPC_URL;
 const TAKER_KEY = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a" as const;
-const HAS_RPC = process.env.RPC_URL !== undefined;
-
-function solverConfig(): SolverConfig {
-  return { rpcUrl: RPC_URL, port: 8081, chainId: ANVIL_CHAIN_ID, maxShortlist: 8 };
-}
+const HAS_RPC = process.env.CI === "true" || process.env.RPC_URL !== undefined;
 
 async function assertChainReady(app: ReturnType<typeof createApp>): Promise<void> {
   const res = await app.request("/v1/quote", {
@@ -30,24 +28,24 @@ async function fundTaker(
   publicClient: ReturnType<typeof createPublicClient>,
   quoteToken: `0x${string}`,
   taker: `0x${string}`,
-  batchExecutor: `0x${string}`,
 ) {
   const demo = getRiptideDemoToken(publicClient, quoteToken);
   await demo.write.faucet([10_000_000_000_000_000_000_000n], { account: taker, chain: walletClient.chain });
-  await demo.write.approve([batchExecutor, 2n ** 256n - 1n], { account: taker, chain: walletClient.chain });
+  await demo.write.approve([loadManifest(31337).batchExecutor, 2n ** 256n - 1n], { account: taker, chain: walletClient.chain });
 }
 
 describe.skipIf(!HAS_RPC)("route integration", () => {
-  it("POST /v1/route exact-in executes on BatchExecutor", async () => {
-    const app = createApp(solverConfig());
-    const manifest = loadManifest(31337);
-    const account = privateKeyToAccount(TAKER_KEY);
-    const chain = { ...foundry, id: 31337 };
-    const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
-    const walletClient = createWalletClient({ chain, transport: http(RPC_URL), account });
+  const config = { ...loadConfig(), rpcUrl: RPC_URL };
+  const app = createApp(config);
+  const manifest = loadManifest(31337);
+  const account = privateKeyToAccount(TAKER_KEY);
+  const chain = { ...foundry, id: 31337 };
+  const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
+  const walletClient = createWalletClient({ chain, transport: http(RPC_URL), account });
 
+  it("POST /v1/route exact-in executes on BatchExecutor", async () => {
     await assertChainReady(app);
-    await fundTaker(walletClient, publicClient, manifest.demoTokens.quote, account.address, manifest.batchExecutor);
+    await fundTaker(walletClient, publicClient, manifest.demoTokens.quote, account.address);
 
     const res = await app.request("/v1/route", {
       method: "POST",
@@ -74,15 +72,8 @@ describe.skipIf(!HAS_RPC)("route integration", () => {
   });
 
   it("POST /v1/route exact-out executes on BatchExecutor", async () => {
-    const app = createApp(solverConfig());
-    const manifest = loadManifest(31337);
-    const account = privateKeyToAccount(TAKER_KEY);
-    const chain = { ...foundry, id: 31337 };
-    const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
-    const walletClient = createWalletClient({ chain, transport: http(RPC_URL), account });
-
     await assertChainReady(app);
-    await fundTaker(walletClient, publicClient, manifest.demoTokens.quote, account.address, manifest.batchExecutor);
+    await fundTaker(walletClient, publicClient, manifest.demoTokens.quote, account.address);
 
     const res = await app.request("/v1/route", {
       method: "POST",
@@ -108,16 +99,9 @@ describe.skipIf(!HAS_RPC)("route integration", () => {
     expect(receipt.status).toBe("success");
   });
 
-  it("multi-strategy split uses more than one strategy", async () => {
-    const app = createApp(solverConfig());
-    const manifest = loadManifest(31337);
-    const account = privateKeyToAccount(TAKER_KEY);
-    const chain = { ...foundry, id: 31337 };
-    const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
-    const walletClient = createWalletClient({ chain, transport: http(RPC_URL), account });
-
+  it("multi-strategy split uses S1 and S2", async () => {
     await assertChainReady(app);
-    await fundTaker(walletClient, publicClient, manifest.demoTokens.quote, account.address, manifest.batchExecutor);
+    await fundTaker(walletClient, publicClient, manifest.demoTokens.quote, account.address);
 
     const res = await app.request("/v1/route", {
       method: "POST",
@@ -139,15 +123,15 @@ describe.skipIf(!HAS_RPC)("route integration", () => {
 
 describe.skipIf(!HAS_RPC)("adversarial stale version", () => {
   it("tampered expectedVersion reverts on simulate", async () => {
-    const app = createApp(solverConfig());
+    const app = createApp({ ...loadConfig(), rpcUrl: RPC_URL });
     await assertChainReady(app);
     const manifest = loadManifest(31337);
     const account = privateKeyToAccount(TAKER_KEY);
     const chain = { ...foundry, id: 31337 };
     const publicClient = createPublicClient({ chain, transport: http(RPC_URL) });
-    const walletClient = createWalletClient({ chain, transport: http(RPC_URL), account });
+    const walletClient = createWalletClient({ chain, transport: http(RPC_URL), account: account });
 
-    await fundTaker(walletClient, publicClient, manifest.demoTokens.quote, account.address, manifest.batchExecutor);
+    await fundTaker(walletClient, publicClient, manifest.demoTokens.quote, account.address);
 
     const res = await app.request("/v1/route", {
       method: "POST",

@@ -3,13 +3,14 @@ pragma solidity 0.8.30;
 
 import { RiptideForkBase } from "../helpers/RiptideForkBase.sol";
 import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
+import { RiptideErrors } from "../../src/types/RiptideErrors.sol";
 import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
+
 import { RiptideRebalanceKernel } from "../../src/core/RiptideRebalanceKernel.sol";
 
 /// @notice Gate 5: Mechanism 2 β-split rebalance settlement.
 contract Mechanism2Test is RiptideForkBase {
     RiptideRebalanceKernel internal kernelRef;
-
     function setUp() public {
         _deploySystem();
         kernelRef = kernel;
@@ -29,9 +30,7 @@ contract Mechanism2Test is RiptideForkBase {
         tokenQuote.approve(address(aqua), type(uint256).max);
         aqua.ship(address(rebalanceRouter), abi.encode(order), _tokens(), _amounts(100e18, 200_000e18));
         swapRouter.registerStrategy(strategyKey, orderHash, strategy, maker);
-        rebalanceRouter.registerStrategy(
-            strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken)
-        );
+        rebalanceRouter.registerStrategy(strategyKey, orderHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken));
         vm.stopPrank();
 
         uint256 resolverBefore = tokenQuote.balanceOf(resolver);

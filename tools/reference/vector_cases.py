@@ -84,24 +84,13 @@ def _volatility_cases() -> list[dict]:
     cases.append({
         "id": "vol_gk_blend",
         "inputs": {**base, **gk_inputs},
-        "outputs": {
-            "gkTerm": rm.wad_interval(gk, rm.Rounding.DOWN),
-            "varWad": rm.wad_interval(var_gk, rm.Rounding.DOWN),
-            "sigmaWad": rm.wad_interval(sigma_gk, rm.Rounding.DOWN),
-        },
+        "outputs": {"gkTerm": rm.wad_interval(gk, rm.Rounding.DOWN), "varWad": rm.wad_interval(var_gk, rm.Rounding.DOWN), "sigmaWad": rm.wad_interval(sigma_gk, rm.Rounding.DOWN)},
     })
 
     sigma_clamp_low = rm.sigma_from_var(Decimal(0), Decimal(WAD), Decimal("100000000000000000"), Decimal("1000000000000000000"))
     cases.append({
         "id": "vol_clamp_min",
-        "inputs": {
-            "prevVar": "0",
-            "logReturn": "0",
-            "lambda": base["lambda"],
-            "dt": str(WAD),
-            "sigmaMin": "100000000000000000",
-            "sigmaMax": "1000000000000000000",
-        },
+        "inputs": {"prevVar": "0", "logReturn": "0", "lambda": base["lambda"], "dt": str(WAD), "sigmaMin": "100000000000000000", "sigmaMax": "1000000000000000000"},
         "outputs": {"sigmaWad": rm.wad_interval(sigma_clamp_low, rm.Rounding.DOWN)},
     })
 
@@ -109,14 +98,7 @@ def _volatility_cases() -> list[dict]:
     sigma_high = rm.sigma_from_var(high_var, Decimal(WAD), Decimal("10000000000000000"), Decimal("500000000000000000"))
     cases.append({
         "id": "vol_clamp_max",
-        "inputs": {
-            "prevVar": "0",
-            "logReturn": "1000000000000000000",
-            "lambda": "500000000000000000",
-            "dt": str(WAD),
-            "sigmaMin": "10000000000000000",
-            "sigmaMax": "500000000000000000",
-        },
+        "inputs": {"prevVar": "0", "logReturn": "1000000000000000000", "lambda": "500000000000000000", "dt": str(WAD), "sigmaMin": "10000000000000000", "sigmaMax": "500000000000000000"},
         "outputs": {"sigmaWad": rm.wad_interval(sigma_high, rm.Rounding.DOWN)},
     })
 
@@ -151,14 +133,8 @@ def _fee_controller_cases() -> list[dict]:
     cases.append({
         "id": "pi_step_up",
         "inputs": {
-            "feeReportedPrev": str(fee_prev),
-            "integralPrev": "0",
-            "feeTarget": str(target),
-            "kp": str(kp),
-            "ki": str(ki),
-            "iMax": str(i_max),
-            "feeMin": str(fee_min),
-            "feeMax": str(fee_max),
+            "feeReportedPrev": str(fee_prev), "integralPrev": "0", "feeTarget": str(target),
+            "kp": str(kp), "ki": str(ki), "iMax": str(i_max), "feeMin": str(fee_min), "feeMax": str(fee_max),
         },
         "outputs": {
             "feeReported": rm.wad_interval(reported, rm.Rounding.DOWN),
@@ -171,14 +147,8 @@ def _fee_controller_cases() -> list[dict]:
     cases.append({
         "id": "pi_anti_windup",
         "inputs": {
-            "feeReportedPrev": str(fee_min),
-            "integralPrev": "0",
-            "feeTarget": str(large_error_target),
-            "kp": str(kp),
-            "ki": str(ki),
-            "iMax": str(i_max),
-            "feeMin": str(fee_min),
-            "feeMax": str(fee_max),
+            "feeReportedPrev": str(fee_min), "integralPrev": "0", "feeTarget": str(large_error_target),
+            "kp": str(kp), "ki": str(ki), "iMax": str(i_max), "feeMin": str(fee_min), "feeMax": str(fee_max),
         },
         "outputs": {
             "feeReported": rm.wad_interval(reported2, rm.Rounding.DOWN),

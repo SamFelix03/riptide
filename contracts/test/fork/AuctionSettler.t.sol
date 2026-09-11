@@ -3,6 +3,8 @@ pragma solidity 0.8.30;
 
 import { RiptideForkBase } from "../helpers/RiptideForkBase.sol";
 import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
+import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
+import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 
 /// @notice Permissionless auction settler fork tests.
 contract AuctionSettlerTest is RiptideForkBase {

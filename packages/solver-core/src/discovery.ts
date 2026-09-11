@@ -102,6 +102,7 @@ export class RpcDiscoveryProvider implements DiscoveryProvider {
       const aquaBase = BigInt(state.aquaBase);
       const aquaQuote = BigInt(state.aquaQuote);
       if (aquaBase === 0n || aquaQuote === 0n) continue;
+      // quoteSwap builds the SwapVM order from committed strategy reserves; aqua caps liquidity separately.
       const strategyTuple = toStrategyTuple(
         strategy,
         strategy.reserveBaseWad,
@@ -141,6 +142,7 @@ export class RpcDiscoveryProvider implements DiscoveryProvider {
 }
 
 export { SubgraphDiscoveryProvider, checkSubgraphReachable, listActiveStrategyKeys } from "./subgraph/discovery.js";
+export { DEMO_MARKET_ID } from "./subgraph/client.js";
 
 export function createDiscoveryProvider(config: {
   manifest: DeploymentManifest;

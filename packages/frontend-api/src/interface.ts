@@ -5,6 +5,7 @@ import type {
   EventFeedItem,
   Freshness,
   RestoreDemoResult,
+  RouteView,
   RedeploySubgraphResult,
   OpenDemoAuctionsResult,
   Market,
@@ -56,5 +57,7 @@ export interface RiptideFrontendApi {
   getControllerState(maker: `0x${string}`, strategyHash: `0x${string}`): Promise<ControllerTelemetry>;
   getRecaptureStats(scope: RecaptureStatsScope): Promise<RecaptureStats>;
   streamEvents(filter: EventFeedFilter): Promise<EventFeedItem[]>;
+  /** Atomic multi-fill taker settlements through RiptideBatchExecutor. */
+  listRoutes(limit?: number): Promise<RouteView[]>;
   getFreshness(): Promise<Freshness>;
 }

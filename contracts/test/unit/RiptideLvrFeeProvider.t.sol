@@ -8,6 +8,7 @@ import { IProtocolFeeProvider } from "@1inch/swap-vm/instructions/interfaces/IPr
 
 import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
 import { RiptideErrors } from "../../src/types/RiptideErrors.sol";
+import { FeeController } from "../../src/libraries/FeeController.sol";
 import { RiptideLvrFeeProviderHarness } from "../mocks/RiptideLvrFeeProviderHarness.sol";
 import { RiptideVolatilityOracleHarness } from "../mocks/RiptideVolatilityOracleHarness.sol";
 import { VectorLoader } from "../differential/VectorLoader.sol";
@@ -21,6 +22,10 @@ contract RiptideLvrFeeProviderTest is VectorLoader {
     bytes32 internal constant ORDER_HASH = keccak256("order");
     bytes32 internal constant STRATEGY_KEY = keccak256("strategy");
     address internal constant RECEIVER = address(0xBEEF);
+
+    /// @dev Mirrors RiptideLvrFeeProvider.SWAPVM_FEE_SCALE and swap-vm Fee.sol `BPS`.
+    uint256 internal constant SWAPVM_FEE_SCALE = 100;
+    uint256 internal constant SWAPVM_BPS = 1e9;
 
     RiptideTypes.FeePolicy internal defaultFee;
 
@@ -81,19 +86,48 @@ contract RiptideLvrFeeProviderTest is VectorLoader {
         provider.setControllerState(STRATEGY_KEY, feeReported, 0);
         oracle.seedState(STRATEGY_KEY, 0, sigmaWad, 0, 1e18, true);
 
-        (uint32 feeBps,) = provider.getFeeBpsAndRecipient(ORDER_HASH, address(0), address(0), address(0), address(0), true);
-        assertGe(feeBps, defaultFee.feeMin);
-        assertLe(feeBps, defaultFee.feeMax);
-        assertLt(feeBps, 1e7);
+        (uint32 feeBps,) = provider.getFeeBpsAndRecipient(
+            ORDER_HASH, address(0), address(0), address(0), address(0), true
+        );
+        // Returned value is in SwapVM units (1e9 = 100%); the governed band is in RIPTIDE units (1e7).
+        uint256 riptideUnits = uint256(feeBps) / SWAPVM_FEE_SCALE;
+        assertGe(riptideUnits, defaultFee.feeMin);
+        assertLe(riptideUnits, defaultFee.feeMax);
+        assertLt(riptideUnits, 1e7);
+        // The value handed to SwapVM must stay inside its own guard (`feeBps <= BPS`, Fee.sol:230).
+        assertLt(feeBps, SWAPVM_BPS);
+    }
+
+    /// @notice The 1e7 -> 1e9 conversion at the IProtocolFeeProvider boundary is exact and lossless.
+    function test_providerReturnsSwapVmScaledFee() public {
+        provider.setControllerState(STRATEGY_KEY, 30_000, 0); // 30 bps in RIPTIDE 1e7 units
+        oracle.seedState(STRATEGY_KEY, 0, 300_000_000_000_000_000, 0, 1e18, true);
+
+        (uint32 feeBps,) = provider.getFeeBpsAndRecipient(
+            ORDER_HASH, address(0), address(0), address(0), address(0), true
+        );
+
+        // 30 bps must be 30 bps on both scales: 30_000/1e7 == 3_000_000/1e9 == 0.3%.
+        assertEq(feeBps, 3_000_000, "provider must return the fee in SwapVM 1e9 units");
+        (uint24 reported,) = provider.controllerState(STRATEGY_KEY);
+        assertEq(reported, 30_000, "controller state stays in RIPTIDE 1e7 units");
+        assertEq(uint256(feeBps) * 1e7, uint256(reported) * SWAPVM_BPS, "scales agree as fractions");
+    }
+
+    /// @notice The fee ceiling can never breach SwapVM's own `feeBps <= BPS` guard after scaling.
+    function test_maxRiptideFeeStaysUnderSwapVmBps() public pure {
+        // uint24 max is the largest value the payload can carry at all.
+        uint256 maxScaled = uint256(type(uint24).max) * SWAPVM_FEE_SCALE;
+        assertLt(maxScaled, type(uint32).max, "scaled fee always fits uint32");
+        // The codec rejects feeMax >= 1e7, so the true ceiling is below that.
+        uint256 ceilingScaled = (uint256(1e7) - 1) * SWAPVM_FEE_SCALE;
+        assertLt(ceilingScaled, SWAPVM_BPS, "scaled RIPTIDE ceiling stays under SwapVM BPS");
     }
 
     function test_v4NegativeControlUnclampedFeeFails() public {
         provider.setControllerState(STRATEGY_KEY, defaultFee.feeMax + 1, 0);
-        vm.expectRevert(
-            abi.encodeWithSelector(RiptideErrors.RiptideFeeOutOfRange.selector, defaultFee.feeMax + 1, uint256(0))
-        );
+        vm.expectRevert(abi.encodeWithSelector(RiptideErrors.RiptideFeeOutOfRange.selector, defaultFee.feeMax + 1, uint256(0)));
         provider.getFeeBpsAndRecipient(ORDER_HASH, address(0), address(0), address(0), address(0), true);
-        assertGt(provider.getFeeBpsUnclamped(ORDER_HASH), defaultFee.feeMax);
     }
 
     function test_feeControllerVectors() public {
@@ -141,13 +175,14 @@ contract RiptideLvrFeeProviderTest is VectorLoader {
             }
 
             uint24 feeReported = uint24(json.readUint(string.concat(base, ".outputs.feeReported.floor")));
-            provider.setControllerState(
-                key, feeReported, int192(int256(json.readUint(string.concat(base, ".outputs.integral.floor"))))
-            );
+            provider.setControllerState(key, feeReported, int192(int256(json.readUint(string.concat(base, ".outputs.integral.floor")))));
             oracle.seedState(key, 0, 100_000_000_000_000_000, 0, 1e18, true);
 
             (uint32 feeBps,) = provider.getFeeBpsAndRecipient(order, address(0), address(0), address(0), address(0), true);
-            _assertUintOutput(feeBps, json, string.concat(base, ".outputs.feeReported"));
+            // Vectors are in RIPTIDE units (1e7); the boundary returns SwapVM units (1e9).
+            // The conversion is exact, so unscaling must reproduce the vector bit-for-bit.
+            assertEq(uint256(feeBps) % SWAPVM_FEE_SCALE, 0, "scaling must be lossless");
+            _assertUintOutput(uint256(feeBps) / SWAPVM_FEE_SCALE, json, string.concat(base, ".outputs.feeReported"));
         }
     }
 

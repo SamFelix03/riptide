@@ -4,8 +4,8 @@ import {
   StrategyRuntimeInitialized,
   SwapFilled,
 } from "../../generated/RiptideSwapVMRouter/RiptideSwapVMRouter";
-import { Fill, Strategy, StrategyKeyIndex } from "../../generated/schema";
-import { ensureMaker, ensureMarket, ensureProtocol, ensureToken, BASE_TOKEN, QUOTE_TOKEN } from "../helpers";
+import { Fill, MarketSnapshot, Strategy, StrategyKeyIndex } from "../../generated/schema";
+import { bucketStart, ensureMaker, ensureMarket, ensureProtocol, ensureToken, BASE_TOKEN, QUOTE_TOKEN } from "../helpers";
 
 export function handleStrategyRuntimeInitialized(event: StrategyRuntimeInitialized): void {
   ensureProtocol();
@@ -84,4 +84,23 @@ export function handleSwapFilled(event: SwapFilled): void {
   const maker = ensureMaker(event.params.maker);
   maker.fillVolume = maker.fillVolume.plus(event.params.amountIn);
   maker.save();
+
+  // Hourly market bucket. Only the rebalance handler used to touch MarketSnapshot, so
+  // fillVolume/fillCount stayed zero forever and any hourly volume series read as flat.
+  const snapId = event.params.marketId
+    .toHexString()
+    .concat("-")
+    .concat(bucketStart(event.block.timestamp).toString());
+  let snap = MarketSnapshot.load(snapId);
+  if (snap == null) {
+    snap = new MarketSnapshot(snapId);
+    snap.market = event.params.marketId.toHexString();
+    snap.bucketStart = bucketStart(event.block.timestamp);
+    snap.fillVolume = BigInt.zero();
+    snap.recaptureVolume = BigInt.zero();
+    snap.fillCount = BigInt.zero();
+  }
+  snap.fillVolume = snap.fillVolume.plus(event.params.amountIn);
+  snap.fillCount = snap.fillCount.plus(BigInt.fromI32(1));
+  snap.save();
 }

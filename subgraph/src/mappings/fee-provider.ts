@@ -1,3 +1,5 @@
+import { BigInt, Bytes } from "@graphprotocol/graph-ts";
+
 import { FeeControllerUpdated } from "../../generated/RiptideLvrFeeProvider/RiptideLvrFeeProvider";
 import { ControllerState, StrategyKeyIndex } from "../../generated/schema";
 

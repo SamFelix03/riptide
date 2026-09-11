@@ -2,6 +2,7 @@
 pragma solidity 0.8.30;
 
 import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import { Calldata } from "@1inch/solidity-utils/contracts/libraries/Calldata.sol";
 import { TransientLock, TransientLockLib } from "@1inch/solidity-utils/contracts/libraries/TransientLock.sol";
 
 import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
@@ -48,6 +49,7 @@ interface IRiptideRebalanceApp {
 /// @title RiptideRebalanceModule
 /// @notice Mechanism 2 settlement logic extracted from the interpreter so the router fits EIP-170.
 contract RiptideRebalanceModule {
+    using Calldata for bytes;
     using TransientLockLib for TransientLock;
     using SafeCast for uint256;
 

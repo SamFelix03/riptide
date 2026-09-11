@@ -49,7 +49,8 @@ contract RiptideLens is IRiptideLens {
         state.runtime = REBALANCE_ROUTER.runtimeState(strategyKey);
         (state.feeReported,) = FEE_PROVIDER.controllerState(strategyKey);
         state.sigmaWad = ORACLE.sigmaWad(strategyKey);
-        (state.aquaBase, state.aquaQuote) = AQUA.safeBalances(maker, address(SWAP_ROUTER), strategyHash, base, quote);
+        (state.aquaBase, state.aquaQuote) =
+            AQUA.safeBalances(maker, address(SWAP_ROUTER), strategyHash, base, quote);
         state.walletBase = IERC20(base).balanceOf(maker);
         state.walletQuote = IERC20(quote).balanceOf(maker);
         state.allowanceBase = IERC20(base).allowance(maker, address(AQUA));

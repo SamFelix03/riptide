@@ -1,5 +1,5 @@
 import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
-import { assert, clearStore, describe, test, beforeEach, newMockEvent as defaultMockEvent } from "matchstick-as/assembly/index";
+import { assert, clearStore, describe, test } from "matchstick-as/assembly/index";
 
 import { MarketSnapshot, Rebalance } from "../generated/schema";
 import { RebalanceSettled } from "../generated/RiptideRebalanceRouter/RiptideRebalanceRouter";
@@ -8,9 +8,9 @@ import { handleRebalanceSettled } from "../src/mappings/rebalance-router";
 const STRATEGY_KEY = Bytes.fromHexString("0x3c8e904cdb19937d60d41c8d984b1a8803ad6e0891b4f9e032dcec2a22c2c7f5");
 const MARKET_ID = Bytes.fromHexString("0x5fda11de1a2ed0b5d3c2e74823b76e83e05972744e3f0b5695ce173a4fd62251");
 const MAKER = Address.fromString("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
-const RESOLVER = Address.fromString("0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65");
-const TOKEN_IN = Address.fromString("0x0000000000000000000000000000000000000011");
-const TOKEN_OUT = Address.fromString("0x0000000000000000000000000000000000000012");
+const RESOLVER = Address.fromString("0x90F79bf6EB2c4f870365E785982E1f101E93b906");
+const TOKEN_IN = Address.fromString("0x610178da211fef7d417bc0e6fed39f05609ad788");
+const TOKEN_OUT = Address.fromString("0xb7f8bc63bbcad18155201308c8f3540b07f84f5e");
 
 function createRebalanceEvent(): RebalanceSettled {
   const ev = changetype<RebalanceSettled>(newMockEvent());
@@ -64,11 +64,17 @@ describe("rebalance router", () => {
 });
 
 function newMockEvent(): ethereum.Event {
-  const event = defaultMockEvent();
-  event.address = Address.fromString("0x0000000000000000000000000000000000000003");
+  const event = new ethereum.Event();
+  event.address = Address.fromString("0x5FC8d32690cc91D4c39d9d3abcBD16989F875707");
   event.logIndex = BigInt.fromI32(0);
+  event.transaction = new ethereum.Transaction();
   event.transaction.hash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000005");
+  event.block = new ethereum.Block();
   event.block.number = BigInt.fromI32(400);
   event.block.timestamp = BigInt.fromI32(1_700_000_100);
   return event;
+}
+
+function beforeEach(fn: () => void): void {
+  fn();
 }

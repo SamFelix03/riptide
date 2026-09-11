@@ -10,7 +10,7 @@ import { optimize } from "../src/optimize.js";
 import { QuoteKind } from "../src/types.js";
 
 const RPC_URL = process.env.RPC_URL ?? "http://127.0.0.1:8545";
-const HAS_RPC = process.env.RPC_URL !== undefined;
+const HAS_RPC = process.env.CI === "true" || process.env.RPC_URL !== undefined;
 
 describe.skipIf(!HAS_RPC)("waterfill vs quoter", () => {
   it("matches RiptideQuoter on Anvil", async () => {
@@ -48,16 +48,7 @@ describe.skipIf(!HAS_RPC)("waterfill vs quoter", () => {
           quoteToken: c.strategy.quoteToken,
           reserveBaseWad: c.reserveBaseWad,
           reserveQuoteWad: c.reserveQuoteWad,
-          fee: {
-            feeMin: Number(c.strategy.fee.feeMin),
-            feeMax: Number(c.strategy.fee.feeMax),
-            lambda: c.strategy.fee.lambda,
-            kp: c.strategy.fee.kp,
-            ki: c.strategy.fee.ki,
-            iMax: c.strategy.fee.iMax,
-            sigmaMin: c.strategy.fee.sigmaMin,
-            sigmaMax: c.strategy.fee.sigmaMax,
-          },
+          fee: c.strategy.fee,
           auction: c.strategy.auction,
           oracle: c.strategy.oracle,
           feeProvider: c.strategy.feeProvider,
@@ -67,6 +58,7 @@ describe.skipIf(!HAS_RPC)("waterfill vs quoter", () => {
         fill.amount,
       ]);
       expect(amountIn).toBe(fill.amountIn);
+      // Local CPMM uses committed reserves + probe feeBps; on-chain SwapVM applies full fee/auction path.
       const diff = amountOut > fill.amountOut ? amountOut - fill.amountOut : fill.amountOut - amountOut;
       expect(diff * 100n).toBeLessThanOrEqual(fill.amountOut);
     }

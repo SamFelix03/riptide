@@ -1,4 +1,4 @@
-import { createPublicClient, createWalletClient } from "viem";
+import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
 

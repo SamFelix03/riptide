@@ -1,8 +1,7 @@
 {
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["@graphprotocol/graph-ts"],
-    "lib": ["ES2020"],
-    "skipLibCheck": true
+    "types": ["@graphprotocol/graph-ts"]
   },
   "include": ["src", "tests"]
 }

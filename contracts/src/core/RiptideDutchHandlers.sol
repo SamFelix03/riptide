@@ -2,6 +2,7 @@
 pragma solidity 0.8.30;
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Calldata } from "@1inch/solidity-utils/contracts/libraries/Calldata.sol";
 import { Power } from "@1inch/swap-vm/libs/Power.sol";
 import { Context, ContextLib } from "@1inch/swap-vm/libs/VM.sol";
 import { DutchAuctionArgsBuilder } from "@1inch/swap-vm/instructions/DutchAuction.sol";
@@ -16,10 +17,7 @@ abstract contract RiptideDutchHandlers {
     error DutchAuctionExpired(uint256 currentTime, uint256 deadline);
 
     function _dutchAuctionBalanceIn1D(Context memory ctx, bytes calldata args) internal view {
-        require(
-            ctx.swap.amountIn == 0 || ctx.swap.amountOut == 0,
-            DutchAuctionShouldBeAppliedBeforeSwapAmountsComputed(ctx.swap.amountIn, ctx.swap.amountOut)
-        );
+        require(ctx.swap.amountIn == 0 || ctx.swap.amountOut == 0, DutchAuctionShouldBeAppliedBeforeSwapAmountsComputed(ctx.swap.amountIn, ctx.swap.amountOut));
 
         (uint256 startTime, uint256 duration, uint256 decayFactor) = DutchAuctionArgsBuilder.parse(args);
         require(block.timestamp <= startTime + duration, DutchAuctionExpired(block.timestamp, startTime + duration));
@@ -29,10 +27,7 @@ abstract contract RiptideDutchHandlers {
     }
 
     function _dutchAuctionBalanceOut1D(Context memory ctx, bytes calldata args) internal view {
-        require(
-            ctx.swap.amountIn == 0 || ctx.swap.amountOut == 0,
-            DutchAuctionShouldBeAppliedBeforeSwapAmountsComputed(ctx.swap.amountIn, ctx.swap.amountOut)
-        );
+        require(ctx.swap.amountIn == 0 || ctx.swap.amountOut == 0, DutchAuctionShouldBeAppliedBeforeSwapAmountsComputed(ctx.swap.amountIn, ctx.swap.amountOut));
 
         (uint256 startTime, uint256 duration, uint256 decayFactor) = DutchAuctionArgsBuilder.parse(args);
         require(block.timestamp <= startTime + duration, DutchAuctionExpired(block.timestamp, startTime + duration));

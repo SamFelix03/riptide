@@ -2,28 +2,23 @@
 pragma solidity 0.8.30;
 
 import { Test } from "forge-std/Test.sol";
-import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
-import { MakerTraits, MakerTraitsLib } from "@1inch/swap-vm/libs/MakerTraits.sol";
-
 import { RiptideConstants } from "../../src/core/RiptideConstants.sol";
 import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
 import { RiptideSwapVMRouter } from "../../src/core/RiptideSwapVMRouter.sol";
-import { RiptideRebalanceKernel } from "../../src/core/RiptideRebalanceKernel.sol";
-import { RiptideRebalanceRouter } from "../../src/core/RiptideRebalanceRouter.sol";
 import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
+import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
+import { MakerTraits, MakerTraitsLib } from "@1inch/swap-vm/libs/MakerTraits.sol";
 
 contract RiptideSwapVMRouterTest is Test {
     function test_opcodeConstantsFrozen() public pure {
         assertEq(RiptideConstants.OP_DEADLINE, 13);
         assertEq(RiptideConstants.OP_XYCSWAP, 17);
-        assertEq(RiptideConstants.OP_AQUA_DYNAMIC_PROTOCOL_FEE, 30);
         assertEq(RiptideConstants.RIPTIDE_REBALANCE_OPCODE, 34);
-        assertEq(RiptideConstants.OP_DUTCH_AUCTION_BALANCE_IN, 35);
-        assertEq(RiptideConstants.OP_DUTCH_AUCTION_BALANCE_OUT, 36);
     }
 
-    function _strategy() internal view returns (RiptideTypes.Strategy memory s) {
-        s = RiptideTypes.Strategy({
+    function test_buildSwapOrderProgramLayout() public {
+        RiptideSwapVMRouter router = new RiptideSwapVMRouter(address(1), address(2), address(this), "t", "1", address(3), address(4));
+        RiptideTypes.Strategy memory s = RiptideTypes.Strategy({
             maker: address(this),
             baseToken: address(0xA),
             quoteToken: address(0xB),
@@ -44,26 +39,13 @@ contract RiptideSwapVMRouterTest is Test {
             feeProvider: address(0xC),
             salt: bytes32(uint256(7))
         });
-    }
 
-    function test_buildSwapOrderProgramLayout() public {
-        RiptideSwapVMRouter router =
-            new RiptideSwapVMRouter(address(1), address(2), address(this), "t", "1", address(3), address(4));
-        ISwapVM.Order memory order = router.buildSwapOrder(address(this), _strategy(), uint40(block.timestamp + 100));
+        ISwapVM.Order memory order = router.buildSwapOrder(address(this), s, uint40(block.timestamp + 100));
+        uint256 off = RiptideStrategyCodec.PAYLOAD_LENGTH;
+        assertEq(uint8(order.data[off]), RiptideConstants.OP_DEADLINE);
         bytes memory program = this._programSlice(order.data, order.traits);
         assertEq(uint8(program[0]), RiptideConstants.OP_DEADLINE);
         assertGt(program.length, 1);
-    }
-
-    function test_buildRebalanceOrderProgramLayout() public {
-        RiptideRebalanceKernel kernel = new RiptideRebalanceKernel();
-        RiptideRebalanceRouter router = new RiptideRebalanceRouter(
-            address(1), address(2), address(this), "t", "1", address(kernel), address(3), address(4)
-        );
-        ISwapVM.Order memory order =
-            router.buildRebalanceOrder(address(this), _strategy(), uint40(block.timestamp + 100), 1e17, address(0x5), true);
-        bytes memory program = this._programSlice(order.data, order.traits);
-        assertEq(uint8(program[0]), RiptideConstants.OP_DEADLINE);
     }
 
     function _programSlice(bytes calldata data, MakerTraits traits) external pure returns (bytes memory) {

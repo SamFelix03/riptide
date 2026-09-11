@@ -49,8 +49,7 @@ contract RiptideQuoterTest is VectorLoader {
             uint256 reserveOut = json.readUint(string.concat(base, ".inputs.reserveOut"));
             uint24 feeBps = uint24(json.readUint(string.concat(base, ".inputs.feeBps")));
 
-            RiptideTypes.Strategy memory s =
-                _strategy(uint128(reserveOut), uint128(reserveIn), feeBps, bytes32(uint256(i + 1)));
+            RiptideTypes.Strategy memory s = _strategy(uint128(reserveOut), uint128(reserveIn), feeBps, bytes32(uint256(i + 1)));
             _ship(s);
 
             bool exactIn = keccak256(bytes(kind)) == keccak256("exact_in");
@@ -63,8 +62,10 @@ contract RiptideQuoterTest is VectorLoader {
 
             ISwapVM.Order memory order = sys.swapRouter.buildSwapOrder(s.maker, s, RiptideConstants.SWAP_ORDER_DEADLINE);
             bytes memory takerData = _quoteTakerData(exactIn);
+            address tokenIn = s.quoteToken;
+            address tokenOut = s.baseToken;
             (uint256 routerIn, uint256 routerOut,) =
-                sys.swapRouter.asView().quote(order, s.quoteToken, s.baseToken, raw, takerData);
+                sys.swapRouter.asView().quote(order, tokenIn, tokenOut, raw, takerData);
 
             (uint256 quoterIn, uint256 quoterOut, uint24 feeApplied,) = quoter.quoteSwap(s, qKind, raw);
 
@@ -144,7 +145,12 @@ contract RiptideQuoterTest is VectorLoader {
         vm.startPrank(s.maker);
         tokenBase.approve(address(aqua), type(uint256).max);
         tokenQuote.approve(address(aqua), type(uint256).max);
-        aqua.ship(address(sys.swapRouter), abi.encode(order), _pair(), _amounts(s.reserveBaseWad, s.reserveQuoteWad));
+        aqua.ship(
+            address(sys.swapRouter),
+            abi.encode(order),
+            _pair(),
+            _amounts(s.reserveBaseWad, s.reserveQuoteWad)
+        );
         sys.swapRouter.registerStrategy(strategyKey, orderHash, s, s.maker);
         vm.stopPrank();
     }

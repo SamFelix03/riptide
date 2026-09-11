@@ -138,6 +138,19 @@ function writeGenerated(files) {
 }
 
 function main() {
+  // Codegen reads Foundry artifacts from contracts/out, which only exist after
+  // `forge build`. The generated ABIs are committed, so a deploy target that only
+  // builds the TypeScript (no Foundry toolchain, no contracts/out in the upload) can
+  // skip regeneration and compile against what is already in src/abis.
+  //
+  // Deliberately opt-in rather than "skip whenever artifacts are missing", so a local
+  // or CI run with a stale/absent build still fails loudly. `--check` always runs:
+  // drift detection must never be silently disabled.
+  if (process.env.RIPTIDE_SKIP_CODEGEN === "1" && !process.argv.includes("--check")) {
+    console.log("RIPTIDE_SKIP_CODEGEN=1 — using committed ABIs in src/abis, skipping codegen.");
+    return 0;
+  }
+
   const files = writeGeneratedFiles();
   if (process.argv.includes("--check")) {
     return checkGenerated(files);

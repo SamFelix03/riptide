@@ -1,4 +1,4 @@
-/** Official Uniswap V3 Ethereum mainnet subgraph (Uniswap Labs). MCP comparison only. */
+/** Official Uniswap V3 Ethereum mainnet subgraph (Uniswap Labs). */
 export const DEFAULT_DEX_SUBGRAPH_ID = "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV";
 
 export const DEX_SUBGRAPH_IDS = {

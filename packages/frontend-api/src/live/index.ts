@@ -7,6 +7,7 @@ import { evaluate } from "@riptide/resolver-core";
 import {
   ANVIL_CHAIN_ID,
   getRiptideLens,
+  getRiptideLvrFeeProvider,
   getRiptideQuoter,
   getRiptideRebalanceRouter,
   getRiptideSwapVMRouter,
@@ -33,6 +34,7 @@ import {
   queryProtocolStats,
   queryRecentFills,
   queryRecentRebalances,
+  queryRecentRoutes,
   queryRecaptureByMarket,
   queryStrategyCumulativeRecapture,
   queryTotalPaidToResolvers,
@@ -682,15 +684,29 @@ export class LiveFrontendApi implements RiptideFrontendApi {
       throw err;
     }
 
-    let feeTargetValue = Number(state.runtime.feeReported);
+    // The router's `runtime` struct only gets a controller snapshot written to it by a
+    // *rebalance* (RiptideRebalanceModule._advanceRuntime). A strategy that has only ever
+    // been swapped against therefore has runtime.feeReported == 0, which is not the fee it
+    // is charging. RiptideLvrFeeProvider is the source of truth for both numbers, so read
+    // it directly and fall back to the router runtime only if the strategy is unregistered.
+    const provider = getRiptideLvrFeeProvider(this.client, manifest.feeProvider);
+    let feeReportedValue = Number(state.runtime.feeReported);
+    let integralValue = state.runtime.integral.toString();
+    let feeTargetValue = feeReportedValue;
+    try {
+      const [reported, integral] = await provider.read.controllerState([strategyHash]);
+      feeReportedValue = Number(reported);
+      integralValue = integral.toString();
+      feeTargetValue = Number(await provider.read.feeTarget([strategyHash]));
+    } catch {
+      // Unregistered on the provider — keep the router-runtime values.
+    }
+
     let indexedBlock = "0";
     if (this.config.subgraphUrl) {
       const rows = await queryLatestControllerStates(this.config.subgraphUrl, 20);
       const row = rows.find((r) => r.strategy.id.includes(strategyHash.slice(2, 10)));
-      if (row) {
-        indexedBlock = row.blockNumber;
-        feeTargetValue = row.feeTarget;
-      }
+      if (row) indexedBlock = row.blockNumber;
     }
 
     return {
@@ -698,10 +714,33 @@ export class LiveFrontendApi implements RiptideFrontendApi {
       strategyHash,
       sigmaWad: state.sigmaWad.toString(),
       feeTarget: feeTargetValue,
-      feeReported: Number(state.runtime.feeReported),
-      integral: state.runtime.integral.toString(),
+      feeReported: feeReportedValue,
+      integral: integralValue,
       indexedBlock,
     };
+  }
+
+  /**
+   * Atomic multi-fill taker settlements. Each row is one RiptideBatchExecutor.execute
+   * call: several maker fills that either all settled or all reverted together.
+   * Indexed from RouteExecuted; requires a subgraph (the RPC fallback does not scan it).
+   */
+  async listRoutes(limit = 20) {
+    if (!this.config.subgraphUrl) return [];
+    const rows = await queryRecentRoutes(this.config.subgraphUrl, limit);
+    return rows.map((r) => ({
+      routeId: r.id,
+      txHash: r.txHash,
+      blockNumber: r.blockNumber,
+      timestamp: r.timestamp,
+      payer: r.payer,
+      recipient: r.recipient,
+      kind: (r.kind === 0 ? "ExactInput" : "ExactOutput") as "ExactInput" | "ExactOutput",
+      amountIn: r.amountIn,
+      amountOut: r.amountOut,
+      limit: r.limit,
+      fillCount: r.fillCount,
+    }));
   }
 
   async getRecaptureStats(scope: RecaptureStatsScope) {

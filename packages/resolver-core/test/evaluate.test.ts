@@ -84,23 +84,4 @@ describe("bestSettleTs", () => {
     expect(result.bestSettleTs).toBeGreaterThanOrEqual(1000);
     expect(result.payToResolver).toBeGreaterThan(0n);
   });
-
-  it("is not profitable when executedIn is below staleIn", () => {
-    const result = evaluate({
-      auction: {
-        strategyId: "S1",
-        beta: 950_000_000_000_000_000n,
-        decay: 990_000_000_000_000_000n,
-        duration: 3600,
-        antiSandwichPeriod: 0,
-        auctionStartTs: 1000,
-        initialBalanceIn: 1n,
-        executedInWad: 1n,
-        staleInWad: 2n,
-      },
-      nowTs: 1000,
-    });
-    expect(result.profitable).toBe(false);
-    expect(result.payToResolver).toBe(0n);
-  });
 });

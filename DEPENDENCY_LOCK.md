@@ -3,7 +3,7 @@
 Status: **populated** (Phase 1, Gate 1). Re-verify before any production deployment
 (`SYSTEM.md` §14.1).
 
-Date verified: 2026-09-08.
+Date verified: 2026-08-28.
 
 ---
 
@@ -22,12 +22,12 @@ Install command (reproducible):
 
 ```bash
 cd contracts
-forge install foundry-rs/forge-std@v1.16.2
+forge install foundry-rs/forge-std
 forge install 1inch/swap-vm@v1.0.2
-forge install 1inch/aqua@v1.0.0
+forge install 1inch/aqua
 forge install OpenZeppelin/openzeppelin-contracts@v5.4.0
-forge install Vectorized/solady@v0.1.26
-forge install 1inch/solidity-utils@6.9.14
+forge install Vectorized/solady
+forge install 1inch/solidity-utils
 ```
 
 Remappings: see `contracts/remappings.txt`.

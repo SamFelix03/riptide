@@ -56,7 +56,7 @@ export async function assertChainSeeded(client: PublicClient, manifest: Deployme
       throw err;
     }
   }
-  throw new ChainNotSeededError("no active seeded strategies on chain — re-run demo seed");
+  throw new ChainNotSeededError("no active seeded strategies on chain — re-run demo seed (pnpm demo:reset)");
 }
 
 export async function isChainSeeded(client: PublicClient, manifest: DeploymentManifest): Promise<boolean> {

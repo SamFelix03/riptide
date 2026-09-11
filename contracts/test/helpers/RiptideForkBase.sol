@@ -4,6 +4,7 @@ pragma solidity 0.8.30;
 import { Test } from "forge-std/Test.sol";
 import { TokenMock } from "@1inch/solidity-utils/contracts/mocks/TokenMock.sol";
 import { Aqua } from "@1inch/aqua/src/Aqua.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
 import { TakerTraitsLib } from "@1inch/swap-vm/libs/TakerTraits.sol";
@@ -14,17 +15,18 @@ import { RiptideVolatilityOracle } from "../../src/oracle/RiptideVolatilityOracl
 import { RiptideLvrFeeProvider } from "../../src/fees/RiptideLvrFeeProvider.sol";
 import { RiptideSwapVMRouter } from "../../src/core/RiptideSwapVMRouter.sol";
 import { RiptideRebalanceRouter } from "../../src/core/RiptideRebalanceRouter.sol";
-import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
-import { RiptideConstants } from "../../src/core/RiptideConstants.sol";
 import { RiptideAuctionSettler } from "../../src/periphery/RiptideAuctionSettler.sol";
 import { RiptideQuoter } from "../../src/periphery/RiptideQuoter.sol";
 import { RiptideLens } from "../../src/periphery/RiptideLens.sol";
 import { RiptideBatchExecutor } from "../../src/periphery/RiptideBatchExecutor.sol";
 import { IRiptideBatchExecutor } from "../../src/interfaces/IRiptideBatchExecutor.sol";
+import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
+import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
+import { RiptideConstants } from "../../src/core/RiptideConstants.sol";
 import { MockChainlinkAggregator } from "../mocks/MockChainlinkAggregator.sol";
 import { RiptideSystemDeployer } from "./RiptideSystemDeployer.sol";
 
-/// @notice Shared deploy + ship helpers for integration tests against official Aqua.
+/// @notice Shared deploy + ship helpers for integration/fork tests.
 abstract contract RiptideForkBase is Test {
     Aqua internal aqua;
     TokenMock internal tokenBase;
@@ -111,7 +113,12 @@ abstract contract RiptideForkBase is Test {
         vm.startPrank(maker);
         tokenBase.approve(address(aqua), type(uint256).max);
         tokenQuote.approve(address(aqua), type(uint256).max);
-        aqua.ship(address(swapRouter), abi.encode(order), _tokens(), _amounts(100e18, 200_000e18));
+        aqua.ship(
+            address(swapRouter),
+            abi.encode(order),
+            _tokens(),
+            _amounts(100e18, 200_000e18)
+        );
         swapRouter.registerStrategy(strategyKey, orderHash, strategy, maker);
         vm.stopPrank();
     }
@@ -204,6 +211,29 @@ abstract contract RiptideForkBase is Test {
         return fee;
     }
 
+    function _quoteViaQuoter(uint256 amount, bool exactIn)
+        internal
+        view
+        returns (uint256 amountIn, uint256 amountOut, uint24 feeBps, uint128 sigma)
+    {
+        RiptideTypes.QuoteKind kind =
+            exactIn ? RiptideTypes.QuoteKind.ExactInput : RiptideTypes.QuoteKind.ExactOutput;
+        return quoter.quoteSwap(strategy, kind, amount);
+    }
+
+    function _settleViaSettler(uint256 outWad, uint256 maxInWad)
+        internal
+        returns (RiptideTypes.RebalanceResult memory result)
+    {
+        strategy.feeProvider = address(provider);
+        _shipRebalanceStrategy();
+        tokenQuote.mint(resolver, maxInWad);
+        vm.startPrank(resolver);
+        tokenQuote.approve(address(settler), maxInWad);
+        result = settler.settleRebalance(maker, strategy, outWad, maxInWad, uint40(block.timestamp + 1 hours));
+        vm.stopPrank();
+    }
+
     function _shipRebalanceStrategy() internal {
         uint40 auctionStart = uint40(block.timestamp);
         ISwapVM.Order memory rebOrder = rebalanceRouter.buildRebalanceOrderWithAuctionStart(
@@ -219,9 +249,7 @@ abstract contract RiptideForkBase is Test {
         tokenQuote.approve(address(aqua), type(uint256).max);
         aqua.ship(address(rebalanceRouter), abi.encode(rebOrder), _tokens(), _amounts(100e18, 200_000e18));
         swapRouter.registerStrategy(strategyKey, rebHash, strategy, maker);
-        rebalanceRouter.registerStrategy(
-            strategyKey, rebHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken)
-        );
+        rebalanceRouter.registerStrategy(strategyKey, rebHash, RiptideStrategyCodec.marketId(strategy.baseToken, strategy.quoteToken));
         rebalanceRouter.setRebalanceAuctionStart(strategyKey, auctionStart);
         vm.stopPrank();
         orderHash = rebHash;

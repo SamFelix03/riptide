@@ -18,15 +18,6 @@ function resolveRepoRoot(): string {
   return REPO_ROOT;
 }
 
-function chainIdFromFilename(filePath: string): number {
-  const base = path.basename(filePath);
-  const match = /^(\d+)(?:\.example)?\.json$/.exec(base);
-  if (!match) {
-    throw new Error(`Invalid manifest filename: ${filePath}`);
-  }
-  return Number.parseInt(match[1], 10);
-}
-
 export function manifestPath(chainId: number): string {
   return path.join(resolveRepoRoot(), "deployments", `${chainId}.json`);
 }
@@ -47,7 +38,10 @@ export function saveManifest(manifest: DeploymentManifest): void {
 }
 
 export function parseManifestFile(filePath: string): DeploymentManifest {
-  const chainId = chainIdFromFilename(filePath);
+  const chainId = Number.parseInt(path.basename(filePath, ".json"), 10);
+  if (!Number.isInteger(chainId) || chainId <= 0) {
+    throw new Error(`Invalid manifest filename: ${filePath}`);
+  }
   const raw = JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
   const manifest = deploymentManifestSchema.parse(raw);
   if (manifest.chainId !== chainId) {

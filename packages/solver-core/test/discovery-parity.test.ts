@@ -9,7 +9,7 @@ import { DEMO_MARKET } from "../src/presets.js";
 
 const RPC_URL = process.env.RPC_URL ?? "http://127.0.0.1:8545";
 const SUBGRAPH_URL = process.env.SUBGRAPH_URL;
-const HAS_RPC = process.env.RPC_URL !== undefined;
+const HAS_RPC = process.env.CI === "true" || process.env.RPC_URL !== undefined;
 const HAS_SUBGRAPH = Boolean(SUBGRAPH_URL);
 
 describe.skipIf(!HAS_RPC)("discovery parity", () => {

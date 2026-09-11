@@ -13,6 +13,7 @@ import { IRiptideRebalanceKernel } from "../interfaces/IRiptideRebalanceKernel.s
 import { IRiptideVolatilityOracle } from "../oracle/IRiptideVolatilityOracle.sol";
 import { IRiptideLvrFeeProvider } from "../interfaces/IRiptideLvrFeeProvider.sol";
 import { IRiptideEvents } from "../interfaces/IRiptideEvents.sol";
+import { RiptideStrategyCodec } from "./RiptideStrategyCodec.sol";
 
 /// @title RiptideRebalanceInstruction
 /// @notice Custom SwapVM instruction for Mechanism 2 surplus settlement (CONTRACTS.md §10).
@@ -66,7 +67,8 @@ abstract contract RiptideRebalanceInstruction is IRiptideEvents {
             revert RiptideErrors.RiptideStrategyNotActive(ctx.query.orderHash);
         }
 
-        RiptideTypes.RebalanceResult memory result = KERNEL.splitSurplus(ctx.swap.amountIn, staleInWad, beta);
+        RiptideTypes.RebalanceResult memory result =
+            KERNEL.splitSurplus(ctx.swap.amountIn, staleInWad, beta);
 
         if (!ctx.vm.isStaticContext) {
             if (_riptideLock.isLocked()) revert RiptideErrors.RiptideReentrantExecution();
@@ -98,6 +100,8 @@ abstract contract RiptideRebalanceInstruction is IRiptideEvents {
             emit RiptideRebalanceExecuted(ctx.query.orderHash);
             _riptideLock.unlock();
         }
+
+        result; // silence unused in static path beyond split check
     }
 
     function _advanceRuntime(bytes32 strategyKey, uint128 revealedPriceWad) internal {
@@ -118,4 +122,13 @@ abstract contract RiptideRebalanceInstruction is IRiptideEvents {
     }
 
     function _aquaPull(address maker, bytes32 strategyHash, address token, uint256 amount, address to) internal virtual;
+
+    function _enterRiptide() internal {
+        if (_riptideLock.isLocked()) revert RiptideErrors.RiptideReentrantExecution();
+        _riptideLock.lock();
+    }
+
+    function _exitRiptide() internal {
+        _riptideLock.unlock();
+    }
 }

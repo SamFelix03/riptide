@@ -17,6 +17,16 @@ export function marginalOutPerIn(
   return mulDiv(mulDiv(reserveOut, reserveIn, denom, Rounding.Down), 1n, denom, Rounding.Down);
 }
 
+/**
+ * Sentinel meaning "this candidate cannot serve the requested output at all".
+ *
+ * It must be larger than any real wei-denominated cost. `Number.MAX_SAFE_INTEGER`
+ * was previously used here, but it is ~9.0e15 — three orders of magnitude BELOW one
+ * WAD — so ordinary costs exceeded it and the exact-out selection loop treated every
+ * candidate as unusable, silently under-delivering. Keep this a bigint.
+ */
+export const UNSERVICEABLE_MARGINAL = 2n ** 255n;
+
 /** Marginal quote in per one wei base out at `amountOut` (exact-out leg). */
 export function marginalInPerOut(
   reserveIn: bigint,
@@ -24,9 +34,7 @@ export function marginalInPerOut(
   amountOut: bigint,
   feeBps: bigint,
 ): bigint {
-  if (reserveIn === 0n || reserveOut === 0n || amountOut >= reserveOut) {
-    return Number.MAX_SAFE_INTEGER as unknown as bigint;
-  }
+  if (reserveIn === 0n || reserveOut === 0n || amountOut >= reserveOut) return UNSERVICEABLE_MARGINAL;
   const inNet = (reserveIn * reserveOut) / (reserveOut - amountOut) - reserveIn;
   const amountIn = (inNet * BPS + (BPS - feeBps - 1n)) / (BPS - feeBps);
   if (amountOut === 0n) return amountIn;

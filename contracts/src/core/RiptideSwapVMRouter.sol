@@ -3,17 +3,18 @@ pragma solidity 0.8.30;
 
 import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import { ISwapVM } from "@1inch/swap-vm/interfaces/ISwapVM.sol";
+import { RiptideMakerTraits } from "./RiptideMakerTraits.sol";
+import { RiptideSwapOpcodes } from "./RiptideSwapOpcodes.sol";
 import { ControlsArgsBuilder } from "@1inch/swap-vm/instructions/Controls.sol";
 import { FeeArgsBuilder } from "@1inch/swap-vm/instructions/Fee.sol";
 
-import { RiptideMakerTraits } from "./RiptideMakerTraits.sol";
-import { RiptideSwapOpcodes } from "./RiptideSwapOpcodes.sol";
 import { RiptideTypes } from "../types/RiptideTypes.sol";
 import { RiptideErrors } from "../types/RiptideErrors.sol";
 import { RiptideConstants } from "./RiptideConstants.sol";
 import { RiptideStrategyCodec } from "./RiptideStrategyCodec.sol";
 import { IRiptideLvrFeeProvider } from "../interfaces/IRiptideLvrFeeProvider.sol";
 import { IRiptideVolatilityOracle } from "../oracle/IRiptideVolatilityOracle.sol";
+import { IRiptideEvents } from "../interfaces/IRiptideEvents.sol";
 import { RiptideVolatilityOracle } from "../oracle/RiptideVolatilityOracle.sol";
 
 /// @title RiptideSwapVMRouter
@@ -49,12 +50,9 @@ contract RiptideSwapVMRouter is RiptideSwapOpcodes {
         return _marketIds[strategyKey];
     }
 
-    function registerStrategy(
-        bytes32 strategyKey,
-        bytes32 orderHash,
-        RiptideTypes.Strategy calldata strategy,
-        address receiver
-    ) external {
+    function registerStrategy(bytes32 strategyKey, bytes32 orderHash, RiptideTypes.Strategy calldata strategy, address receiver)
+        external
+    {
         if (msg.sender != strategy.maker && msg.sender != owner()) {
             revert RiptideErrors.RiptideUnauthorizedResolver(msg.sender);
         }
@@ -85,7 +83,7 @@ contract RiptideSwapVMRouter is RiptideSwapOpcodes {
         s.maker = maker;
         RiptideStrategyCodec.validateStructure(s);
         bytes memory data = bytes.concat(RiptideStrategyCodec.encode(s), _buildSwapProgram(s, deadline));
-        order = RiptideMakerTraits.buildOrder(maker, data);
+        order = _makeOrder(maker, data);
     }
 
     function riptideSwap(
@@ -95,9 +93,11 @@ contract RiptideSwapVMRouter is RiptideSwapOpcodes {
         uint256 amount,
         bytes calldata takerTraitsAndData
     ) external returns (uint256 amountIn, uint256 amountOut, bytes32 orderHash) {
-        bytes memory data = abi.encodeCall(ISwapVM.swap, (order, tokenIn, tokenOut, amount, takerTraitsAndData));
+        bytes memory data = abi.encodeCall(
+            ISwapVM.swap, (order, tokenIn, tokenOut, amount, takerTraitsAndData)
+        );
         (bool success, bytes memory result) = address(this).delegatecall(data);
-        if (!success) revert RiptideErrors.RiptideSwapFailed();
+        require(success, RiptideErrors.RiptideSwapFailed());
         (amountIn, amountOut, orderHash) = abi.decode(result, (uint256, uint256, bytes32));
 
         bytes32 strategyKey = RiptideStrategyCodec.runtimeStrategyKeyFromData(order.maker, order.data);
@@ -129,6 +129,10 @@ contract RiptideSwapVMRouter is RiptideSwapOpcodes {
             _encodeInstruction(RiptideConstants.OP_XYCSWAP, ""),
             _encodeInstruction(RiptideConstants.OP_SALT, ControlsArgsBuilder.buildSalt(uint64(uint256(s.salt))))
         );
+    }
+
+    function _makeOrder(address maker, bytes memory data) internal pure returns (ISwapVM.Order memory order) {
+        order = RiptideMakerTraits.buildOrder(maker, data);
     }
 
     function _encodeInstruction(uint8 opcode, bytes memory args) internal pure returns (bytes memory) {

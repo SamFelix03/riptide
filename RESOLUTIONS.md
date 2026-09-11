@@ -4,7 +4,7 @@ Resolutions for every `[confirm at build]` item from `docs/SWAPVM_INTEGRATION.md
 verified against the **pinned** dependencies installed via `forge install` / npm (never
 `refs/`).
 
-Date verified: 2026-09-08.
+Date verified: 2026-08-28.
 
 ---
 
@@ -33,13 +33,11 @@ This preserves `SYSTEM.md` §6 intent: official published sources, never the
 - Dispatched in `lib/swap-vm/src/opcodes/AquaOpcodes.sol` at opcode table index **31** (line 71)
 - Related: `_aquaProtocolFeeAmountInXD` at index **29** (line 69)
 
-**RIPTIDE Mechanism 1 decision:** Mechanism 1 still uses the `FeeProtocol` /
-`IProtocolFeeProvider` provider path. Phase 8 encodes `OP_AQUA_DYNAMIC_PROTOCOL_FEE`
-(runtime **30**) in `buildSwapOrder`; that handler `staticcall`s
-`getFeeBpsAndRecipient` on `RiptideLvrFeeProvider`. The Aqua-retained pull variants
-exist for makers who want fees kept inside Aqua balances; they are not the default
-args path. The stock `_dynamicProtocolFeeAmountInXD` (runtime 29) is omitted from
-the trimmed swap table.
+**RIPTIDE Mechanism 1 decision (Phase 8):** Mechanism 1 still uses the `FeeProtocol` /
+`IProtocolFeeProvider` provider path (`_dynamicProtocolFeeAmountInXD` at index **30**) as
+normative in `SWAPVM_INTEGRATION.md` §4. The Aqua pull variants exist for makers who want
+fees retained inside Aqua balances; RIPTIDE may evaluate switching in Phase 8 but the
+default build path is the ordinary provider `staticcall` flow documented in the spec.
 
 ---
 
@@ -63,27 +61,15 @@ Pinned `AquaOpcodes._opcodes()` (`lib/swap-vm/src/opcodes/AquaOpcodes.sol`):
 | 32–34 | PeggedSwap, Extruction, onlyTxOrigin |
 
 **Decision:** The illustrated `0xa0` (160 decimal) is **invalid** for v1.0.2 — the table
-has only 35 entries (indices 0–34). Phase 1 planned to append at source-line index **35**
-or reuse placeholder 23.
+has only 35 entries (indices 0–34). RIPTIDE will:
 
-**Phase 8 freeze:** `AquaOpcodes._opcodes()` overwrites slot 0 with the array length, so
-**runtime dispatch indices are one less** than source-line indices. RIPTIDE appends
-after a stock table of 34 entries. Frozen in `RiptideConstants.sol`:
+1. **Phase 8:** Override `_opcodes()` in `RiptideSwapVMRouter`, **append** the custom
+   rebalance handler at index **35** (first slot after the stock table, per the comment
+   "Add new instructions here" at line 60), **or** occupy placeholder index **23** if
+   bytecode-size constraints favor reusing a free slot.
 
-| Runtime index | Handler |
-| --- | --- |
-| 13 | `Controls._deadline` |
-| 17 | `XYCSwap._xycSwapXD` |
-| 19 | `Decay._decayXD` |
-| 20 | `Controls._salt` |
-| 30 | `Fee._aquaDynamicProtocolFeeAmountInXD` |
-| **34** | `RIPTIDE_REBALANCE_OPCODE` |
-| 35 | DutchAuctionBalanceIn |
-| 36 | DutchAuctionBalanceOut |
-| 37 | `OraclePriceAdjuster` (reserved, unused) |
-
-`_extendOpcodes()` / `_opcodes()` use `new` dynamic arrays and must not repeat the
-slot-0 assembly length write. Index 23 was not needed.
+Frozen constant for Phase 4+ encoding vectors: `RIPTIDE_REBALANCE_OPCODE = 35` (append),
+with index 23 documented as the size-contingent fallback.
 
 ---
 
@@ -102,19 +88,17 @@ slot-0 assembly length write. Index 23 was not needed.
 
 **`PROGRAM_OFFSET_SHIFT = 208` does not exist** in v1.0.2. Program payload offset is
 encoded via four 16-bit slice indexes packed at bit offset 160 (`OrderDataSlices.Program`
-is slice index 4, resolved through `_getDataSlice` / `_getOffset`). The strategy codec
-must reproduce this packing from `MakerTraitsLib.build`, not the obsolete 208-bit shift
-from the pre-v1.0.2 docs.
+is slice index 4, resolved through `_getDataSlice` / `_getOffset`). Phase 4 codec must
+reproduce this packing from `MakerTraitsLib.build`, not the obsolete 208-bit shift from
+the pre-v1.0.2 docs.
 
-Frozen vector inputs (Phase 1):
+Frozen vector inputs for Phase 4:
 
 ```solidity
 USE_AQUA_TRAIT = 1 << 254;
 ORDER_DATA_SLICES_INDEXES_BIT_OFFSET = 160;
+// No PROGRAM_OFFSET_SHIFT in v1.0.2 — use MakerTraitsLib.build slice encoding
 ```
-
-**Phase 4 freeze:** `RiptideMakerTraits` uses `PAYLOAD_LENGTH << 208`. That is the Program
-slice index (bits 208–223 = `160 + (3 << 4)`), not an obsolete pre-v1.0.2 shift. See §8.
 
 ---
 
@@ -129,58 +113,118 @@ and 1inch verified contract addresses page, Ethereum mainnet):
 | AquaSwapVMRouter v1.0.2 | `0x111111338c5091e8440b67b168bae16a668ac0de` |
 
 Fork smoke test (`test/fork/Provenance.t.sol`) ships against the registry on an Ethereum
-mainnet fork and reads `safeBalances`.
+mainnet fork and reads `safeBalances` — **passes**.
 
 **Testnet note:** Sepolia has the vanity registry but not the vanity router (per 1inch docs
 Aug 2026). Integration testing uses **mainnet fork**, not testnet deployment.
 
 ---
 
-## 5. `IProtocolFeeProvider` naming (`CONTRACTS.md` §8 vs pinned swap-vm v1.0.2)
+## 5. EIP-170 two-router split (`SWAPVM_INTEGRATION.md` §3.1, §11)
+
+**Status:** **Resolved in Phase 8** (measured 2026-08-28).
+
+| Contract | Runtime bytecode |
+|----------|------------------|
+| `AquaSwapVMRouter` (stock) | 24,906 B |
+| `RiptideSwapVMRouter` (swap-only) | 34,512 B |
+| `RiptideRebalanceRouter` (rebalance) | 36,220 B |
+
+**Decision:** Two-router split implemented. Both RIPTIDE routers exceed the 24 KB mainnet
+limit because the pinned SwapVM core is already at the boundary. Local Anvil deployment
+succeeds for integration tests. Dutch handlers live in `RiptideDutchHandlers.sol` (copied,
+not inherited) to avoid inheritance linearization conflicts with `AquaSwapVMRouter`.
+
+**Opcode table note (via-ir build):** `AquaOpcodes._opcodes()` materializes the table with
+an assembly length write that overwrites slot 0, so **runtime dispatch indices are one less**
+than source-line indices in `AquaOpcodes.sol` (e.g. `XYCSwap` dispatches at **17**, not 18).
+`RiptideConstants.sol` encodes these runtime indices. `_extendOpcodes()` must not repeat the
+assembly hack — use `new` dynamic arrays to append RIPTIDE handlers at indices 34–37.
+
+**Batch route version authority:** `RiptideBatchExecutor` checks
+`rebalanceRouter.runtimeState(strategyKey).version` (not `swapRouter.strategyVersion`).
+Swap registration initializes swap-side version; rebalance bumps rebalance-router version.
+
+**`MAX_FILLS`:** governed constant `8` in `RiptideConstants.sol` for `RiptideBatchExecutor`.
+
+---
+
+## 5b. `IProtocolFeeProvider` naming (`CONTRACTS.md` §8 vs pinned swap-vm v1.0.2)
 
 **Question:** Docs name `getRecipientAndFees(...) → (receiver, feeBps, surplusBps)`; what does
 pinned SwapVM call?
 
 **Resolution:** Pinned `lib/swap-vm@v1.0.2` uses `getFeeBpsAndRecipient(...) → (uint32 feeBps,
 address to)` only (`IProtocolFeeProvider.sol`; `Fee.sol` staticcall at lines 169–180). No
-`surplusBps` in v1.0.2. Mechanism 1 implements the pinned signature.
+`surplusBps` in v1.0.2. `RiptideLvrFeeProvider` implements the pinned signature; surplus-fee
+accounting is deferred to Phase 8 FeeProtocol wiring if a future SwapVM exposes it.
 
 ---
 
-## 6. EIP-170 two-router split (`SWAPVM_INTEGRATION.md` §3.1, §11)
+## 6. OraclePriceAdjuster (opcode 37) — reserved, unused (`FEATURES.md` 3.1, 5.3)
 
-**Status:** **Resolved in Phase 8** (measured 2026-09-09, solc 0.8.30, via_ir, optimizer_runs 700).
+**Question:** Should `OraclePriceAdjuster` (`_oraclePriceAdjuster1D`) be wired into the
+swap program to feed the volatility oracle per FEATURES §3.1?
 
-| Contract | Runtime bytecode |
-| --- | --- |
-| `RiptideSwapVMRouter` | 24,527 B |
-| `RiptideRebalanceRouter` | 22,648 B |
-| EIP-170 cap | 24,576 B |
+**Resolution:** **No.** `OraclePriceAdjuster` exists in pinned SwapVM v1.0.2 at opcode
+index 37. It reads Chainlink `latestRoundData` and **rewrites `amountIn`/`amountOut`
+toward the oracle price** — it is a taker-favorable post-swap price clip, not a volatility
+observer. Wiring it into the swap program would:
 
-**Decision:** Two-router split implemented. Combining stock AquaOpcodes with both
-mechanisms exceeds EIP-170. Trimming unused mixins and splitting swap vs rebalance
-lets **each router fit under 24,576 B**.
+1. Fight Mechanism 1 (LVR is priced on the CPMM curve, not erased by oracle).
+2. Grow bytecode toward EIP-170 (already at 34–36 KB).
+3. Only adjust 1→0 direction swaps.
 
-- Swap path: `RiptideSwapOpcodes` → `SwapVM`. Does **not** inherit `AquaSwapVMRouter`.
-- Rebalance path: `RiptideRebalanceRouter` is `SwapVM` + `RiptideOpcodes`; settlement
-  lives in `RiptideRebalanceModule` so the interpreter stays smaller.
-- Dutch handlers are copied into `RiptideDutchHandlers.sol` (not inherited from
-  `DutchAuction`) to avoid C3 linearization.
-
-**Program layouts:**
-
-- Swap: `Deadline → aquaDynamicProtocolFee(feeProvider) → XYCSwap → Salt`
-- Rebalance: `Deadline → DutchAuctionBalanceIn/Out → Decay → XYCSwap → RIPTIDE_REBALANCE_OPCODE → Salt`
-
-Reserves come from Aqua `safeBalances` before `runLoop` when the Aqua trait is set.
-No `DynamicBalances` opcode. Payload prefix is 226 bytes; MakerTraits Program slice
-starts at 226.
-
-`DeploySizeTest` asserts both routers `<= 24,576`.
+RIPTIDE feeds the loop through auction-revealed price → `RiptideVolatilityOracle.observe`
+(called from the rebalance router) and Chainlink via the vol-indexer. Opcode 37 remains
+**reserved and unassigned** in `RiptideConstants.sol`.
 
 ---
 
-## 7. Toolchain versions (`SOURCES.md` §6)
+## 7. `surplusBps` — not available in v1.0.2 (`FEATURES.md` 1.8)
+
+**Question:** FEATURES §1.8 references a maker-paid surplus fee via `surplusBps` in
+`FeeProtocol.sol`. Is this available?
+
+**Resolution:** **No.** The pinned v1.0.2 provider API is `getFeeBpsAndRecipient(...)
+→ (uint32 feeBps, address to)`. `Fee.sol` decodes exactly 64 bytes from the staticcall.
+There is no `surplusBps`, `takeSurplusFee`, or `FeeProtocol.sol` in the v1.0.2 tree.
+
+GitHub `main` (undeployed) has `getRecipientAndFees → (address, uint24, uint24)` —
+this is the docs-era API that FEATURES 1.8 and older `SWAPVM_INTEGRATION.md` sections
+reference. It does not exist in any published release (v1.0.0–v1.0.2).
+
+**Economic substitute:** Mechanism 2 surplus is `executedIn − staleIn`, split by β in
+`RiptideRebalanceKernel.splitSurplus`. This is LP/resolver recapture, not a maker-paid
+surplus fee. FEATURES 1.8 is documented as "not in v1.0.2; recapture is M2."
+
+---
+
+## 8. `RiptideMakerTraits.PROGRAM_OFFSET_SHIFT = 208` — correct for slice index 3
+
+`RiptideMakerTraits.sol` uses `PAYLOAD_LENGTH << 208`. This is **correct** for
+v1.0.2: `MakerTraitsLib.build` packs four 16-bit slice indexes starting at bit 160
+(`ORDER_DATA_SLICES_INDEXES_BIT_OFFSET`). With no hooks, all four indexes equal
+`PAYLOAD_LENGTH` (226). Slice index 3 (`OrderDataSlices.Program`) lives at bits
+208–223, so `(226 << 208)` sets exactly that field. The RIPTIDE codec additionally
+sets `USE_AQUA_TRAIT` at bit 254. This matches what `MakerTraitsLib.build` produces
+for the no-hooks case. **Do not change this** — it would invalidate every live order
+hash.
+
+---
+
+## 9. `FeePolicy.lambda` as maker-set intensity
+
+`LVR_MATH.md` §4.1 defines `lambda_Q = Q / (V · dt)` as trading intensity estimated
+online from fills. The payload field `FeePolicy.lambda` is a **maker-governed set-point**,
+not a live estimator. A live estimator would need per-strategy fill accounting, extra
+storage, and anti-gaming. The current design uses the maker-set value as a break-even
+assumption the controller targets. The UI surfaces this as "maker-set intensity" and does
+not claim it is measured turnover.
+
+---
+
+## 10. Toolchain versions (`SOURCES.md` §6)
 
 Without a third-party lockfile to copy, versions were reconciled against pinned SwapVM
 `foundry.toml` and the current environment:
@@ -189,32 +233,6 @@ Without a third-party lockfile to copy, versions were reconciled against pinned 
 | --- | --- |
 | Solidity | `0.8.30` |
 | Foundry | `1.2.3-stable` |
-| Node | `>=20` (CI: 22) |
+| Node | `>=20` (CI: 22; local: 20.20.1) |
 | pnpm | `9.15.0` |
 | Python | `3.11+` |
-
----
-
-## 8. `RiptideMakerTraits.PROGRAM_OFFSET_SHIFT = 208` — correct for slice index 3
-
-`RiptideMakerTraits.sol` uses `PAYLOAD_LENGTH << 208`. This matches the Program slice
-index `MakerTraitsLib` packs at bits 208–223 when hooks are empty and the RIPTIDE
-payload is a prefix of `order.data`. `MakerTraitsFreeze` proves:
-
-- `USE_AQUA_TRAIT = 1 << 254`
-- `ORDER_DATA_SLICES_INDEXES_BIT_OFFSET + (3 << 4) = 208`
-- `RiptideMakerTraits.buildOrder` yields a program slice that excludes the 226-byte payload
-
-Do not change the 208-bit shift — it would invalidate every live order hash.
-
----
-
-## 9. OraclePriceAdjuster (opcode 37) — reserved, unused (`FEATURES.md` 3.1, 5.3)
-
-**Question:** Should `OraclePriceAdjuster` be wired into the swap program?
-
-**Resolution:** **No.** Opcode 37 is reserved in `RiptideConstants.sol` but is not
-installed in either opcode table. The SwapVM handler clips `amountIn`/`amountOut`
-toward a Chainlink price, which would fight Mechanism 1 (LVR is priced on the CPMM
-curve). Volatility enters through auction-revealed price → `RiptideVolatilityOracle.observe`
-from the rebalance path, not through opcode 37.

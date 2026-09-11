@@ -24,7 +24,13 @@ contract RiptideQuoter is IRiptideQuoter {
     IRiptideLvrFeeProvider public immutable FEE_PROVIDER;
     IRiptideVolatilityOracle public immutable ORACLE;
 
-    constructor(address swapRouter, address rebalanceRouter, address kernel, address feeProvider, address oracle) {
+    constructor(
+        address swapRouter,
+        address rebalanceRouter,
+        address kernel,
+        address feeProvider,
+        address oracle
+    ) {
         if (
             swapRouter == address(0) || rebalanceRouter == address(0) || kernel == address(0)
                 || feeProvider == address(0) || oracle == address(0)
@@ -48,7 +54,11 @@ contract RiptideQuoter is IRiptideQuoter {
         bool exactIn = kind == RiptideTypes.QuoteKind.ExactInput;
         bytes memory takerData = _quoteTakerData(exactIn);
 
-        (amountIn, amountOut,) = SWAP_ROUTER.asView().quote(order, s.quoteToken, s.baseToken, rawAmount, takerData);
+        address tokenIn = s.quoteToken;
+        address tokenOut = s.baseToken;
+
+        (amountIn, amountOut,) =
+            SWAP_ROUTER.asView().quote(order, tokenIn, tokenOut, rawAmount, takerData);
 
         bytes32 strategyKey = RiptideStrategyCodec.runtimeStrategyKey(s.maker, s.salt);
         (feeBpsApplied,) = FEE_PROVIDER.controllerState(strategyKey);
@@ -72,10 +82,12 @@ contract RiptideQuoter is IRiptideQuoter {
         );
 
         bytes memory takerData = _quoteTakerData(false);
-        (uint256 amountIn,,) = REBALANCE_ROUTER.asView().quote(order, s.quoteToken, s.baseToken, outWad, takerData);
+        (uint256 amountIn,,) =
+            REBALANCE_ROUTER.asView().quote(order, s.quoteToken, s.baseToken, outWad, takerData);
 
-        uint256 staleInWad =
-            KERNEL.staleBaselineIn(outWad, s.reserveBaseWad, s.reserveQuoteWad, RiptideTypes.QuoteKind.ExactOutput);
+        uint256 staleInWad = KERNEL.staleBaselineIn(
+            outWad, s.reserveBaseWad, s.reserveQuoteWad, RiptideTypes.QuoteKind.ExactOutput
+        );
         result = KERNEL.splitSurplus(amountIn, staleInWad, s.auction.beta);
 
         auctionPriceNowWad = KERNEL.auctionBalance(

@@ -8,7 +8,7 @@ import { assertChainSeeded, checkSubgraphReachable } from "@riptide/solver-core"
 
 import type { ResolverConfig } from "./config.js";
 
-export function createHealthApp(config: ResolverConfig): Hono {
+export function startHealthServer(config: ResolverConfig): void {
   const chain = { ...foundry, id: config.chainId };
   const client = createPublicClient({
     chain,
@@ -34,11 +34,7 @@ export function createHealthApp(config: ResolverConfig): Hono {
       return c.json({ status: "not ready", reason: err instanceof Error ? err.message : String(err) }, 503);
     }
   });
-  return app;
-}
 
-export function startHealthServer(config: ResolverConfig): void {
-  const app = createHealthApp(config);
   serve({ fetch: app.fetch, port: config.port }, (info) => {
     console.log(`resolver-bot health on :${info.port}`);
   });

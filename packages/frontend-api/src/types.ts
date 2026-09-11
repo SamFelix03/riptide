@@ -198,3 +198,18 @@ export type EventFeedItem =
       blockNumber: string;
       timestamp: string;
     };
+
+/** One atomic multi-strategy taker settlement (RiptideBatchExecutor.RouteExecuted). */
+export type RouteView = {
+  routeId: string;
+  txHash: string;
+  blockNumber: string;
+  timestamp: string;
+  payer: string;
+  recipient: string;
+  kind: "ExactInput" | "ExactOutput";
+  amountIn: string;
+  amountOut: string;
+  limit: string;
+  fillCount: number;
+};

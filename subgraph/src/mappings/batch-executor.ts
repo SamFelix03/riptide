@@ -1,3 +1,5 @@
+import { BigInt } from "@graphprotocol/graph-ts";
+
 import { RouteExecuted } from "../../generated/RiptideBatchExecutor/RiptideBatchExecutor";
 import { Route } from "../../generated/schema";
 import { ensureMarket, ensureProtocol } from "../helpers";

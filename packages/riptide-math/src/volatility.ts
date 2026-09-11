@@ -2,10 +2,10 @@ import { LN2_COEFF_WAD, WAD } from "./constants.js";
 import { mulDiv, Rounding, sqrtWad } from "./fullPrecision.js";
 import { lnWad } from "./transcendental.js";
 
-export function ewmaVar(prevVar: bigint, logReturn: bigint, lambda: bigint, gkTermVal = 0n, useGk = false): bigint {
+export function ewmaVar(prevVar: bigint, logReturn: bigint, lambda: bigint, gkTerm = 0n, useGk = false): bigint {
   const r = logReturn < 0n ? -logReturn : logReturn;
   let obs = mulDiv(r, r, WAD, Rounding.Down);
-  if (useGk) obs += gkTermVal;
+  if (useGk) obs += gkTerm;
   const oneMinus = WAD - lambda;
   return mulDiv(lambda, prevVar, WAD, Rounding.Down) + mulDiv(oneMinus, obs, WAD, Rounding.Down);
 }

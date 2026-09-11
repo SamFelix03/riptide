@@ -14,6 +14,7 @@ import { RiptideErrors } from "../types/RiptideErrors.sol";
 import { RiptideConstants } from "../core/RiptideConstants.sol";
 import { RiptideSwapVMRouter } from "../core/RiptideSwapVMRouter.sol";
 import { RiptideRebalanceRouter } from "../core/RiptideRebalanceRouter.sol";
+import { RiptideStrategyCodec } from "../core/RiptideStrategyCodec.sol";
 
 /// @title RiptideBatchExecutor
 /// @notice Atomic multi-strategy taker settlement (CONTRACTS.md §14).
@@ -71,7 +72,8 @@ contract RiptideBatchExecutor is IRiptideBatchExecutor {
             ISwapVM.Order memory order = abi.decode(fill.order, (ISwapVM.Order));
             bytes memory quoteData = _takerData(address(this), exactIn, false);
 
-            (uint256 qIn, uint256 qOut,) = SWAP_ROUTER.asView().quote(order, tokenIn, tokenOut, fill.amount, quoteData);
+            (uint256 qIn, uint256 qOut,) =
+                SWAP_ROUTER.asView().quote(order, tokenIn, tokenOut, fill.amount, quoteData);
             totalIn += qIn;
             totalOut += qOut;
 
@@ -95,7 +97,8 @@ contract RiptideBatchExecutor is IRiptideBatchExecutor {
             FillRequest calldata fill = route.fills[i];
             ISwapVM.Order memory order = abi.decode(fill.order, (ISwapVM.Order));
             bytes memory swapData = _takerData(address(this), exactIn, true);
-            (uint256 fillIn, uint256 fillOut,) = SWAP_ROUTER.riptideSwap(order, tokenIn, tokenOut, fill.amount, swapData);
+            (uint256 fillIn, uint256 fillOut,) =
+                SWAP_ROUTER.riptideSwap(order, tokenIn, tokenOut, fill.amount, swapData);
             amountIn += fillIn;
             amountOut += fillOut;
         }

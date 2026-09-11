@@ -1,10 +1,8 @@
 export const USE_AQUA_TRAIT = 1n << 254n;
 export const ORDER_DATA_SLICES_INDEXES_BIT_OFFSET = 160n;
-export const PROGRAM_OFFSET_SHIFT = 208n;
 
-export function buildProgramSliceTraits(payloadLength: bigint, useAqua = true): bigint {
-  const packed = payloadLength << PROGRAM_OFFSET_SHIFT;
-  return useAqua ? USE_AQUA_TRAIT | packed : packed;
+export function buildProgramSliceTraits(useAqua = true): bigint {
+  return useAqua ? USE_AQUA_TRAIT : 0n;
 }
 
 export function prependPayloadToProgram(payload: Uint8Array, program: Uint8Array): Uint8Array {

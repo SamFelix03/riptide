@@ -1,5 +1,5 @@
 import { Address, BigInt, Bytes, ethereum } from "@graphprotocol/graph-ts";
-import { assert, clearStore, describe, test, beforeEach, newMockEvent as defaultMockEvent } from "matchstick-as/assembly/index";
+import { assert, clearStore, describe, test } from "matchstick-as/assembly/index";
 
 import { Strategy, StrategyKeyIndex } from "../generated/schema";
 import { StrategyRuntimeInitialized, SwapFilled } from "../generated/RiptideSwapVMRouter/RiptideSwapVMRouter";
@@ -66,8 +66,8 @@ function createSwapFilledEvent(): SwapFilled {
   ev.parameters.push(new ethereum.EventParam("strategyKey", ethereum.Value.fromFixedBytes(STRATEGY_KEY)));
   ev.parameters.push(new ethereum.EventParam("maker", ethereum.Value.fromAddress(MAKER)));
   ev.parameters.push(new ethereum.EventParam("marketId", ethereum.Value.fromFixedBytes(MARKET_ID)));
-  ev.parameters.push(new ethereum.EventParam("tokenIn", ethereum.Value.fromAddress(Address.fromString("0x0000000000000000000000000000000000000011"))));
-  ev.parameters.push(new ethereum.EventParam("tokenOut", ethereum.Value.fromAddress(Address.fromString("0x0000000000000000000000000000000000000012"))));
+  ev.parameters.push(new ethereum.EventParam("tokenIn", ethereum.Value.fromAddress(Address.fromString("0x610178da211fef7d417bc0e6fed39f05609ad788"))));
+  ev.parameters.push(new ethereum.EventParam("tokenOut", ethereum.Value.fromAddress(Address.fromString("0xb7f8bc63bbcad18155201308c8f3540b07f84f5e"))));
   ev.parameters.push(new ethereum.EventParam("amountIn", ethereum.Value.fromUnsignedBigInt(BigInt.fromString("1000000000000000000"))));
   ev.parameters.push(new ethereum.EventParam("amountOut", ethereum.Value.fromUnsignedBigInt(BigInt.fromString("2000000000000000000000"))));
   ev.parameters.push(new ethereum.EventParam("feeBpsApplied", ethereum.Value.fromI32(30)));
@@ -79,11 +79,17 @@ function createSwapFilledEvent(): SwapFilled {
 }
 
 function newMockEvent(): ethereum.Event {
-  const event = defaultMockEvent();
-  event.address = Address.fromString("0x0000000000000000000000000000000000000002");
+  const event = new ethereum.Event();
+  event.address = Address.fromString("0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9");
   event.logIndex = BigInt.fromI32(0);
+  event.transaction = new ethereum.Transaction();
   event.transaction.hash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000001");
+  event.block = new ethereum.Block();
   event.block.number = BigInt.fromI32(100);
   event.block.timestamp = BigInt.fromI32(1_700_000_000);
   return event;
+}
+
+function beforeEach(fn: () => void): void {
+  fn();
 }

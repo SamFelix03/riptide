@@ -41,8 +41,7 @@ contract SwapVMInvariantsTest is RiptideForkBase {
     function test_invariant5_makerFavorableRounding() public {
         ISwapVM.Order memory order = _shipAndRegister();
         _riptideSwapExactIn(order, 1000e18);
-        (uint256 balBase,) =
-            aqua.safeBalances(maker, address(swapRouter), orderHash, address(tokenBase), address(tokenQuote));
+        (uint256 balBase,) = aqua.safeBalances(maker, address(swapRouter), orderHash, address(tokenBase), address(tokenQuote));
         assertGt(balBase, 0);
     }
 

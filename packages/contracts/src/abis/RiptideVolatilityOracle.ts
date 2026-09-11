@@ -192,7 +192,7 @@ export const riptideVolatilityOracleAbi = [
     ],
     "outputs": [
       {
-        "name": "",
+        "name": "sigmaWadOut",
         "type": "uint128",
         "internalType": "uint128"
       }

@@ -6,8 +6,8 @@ import { WadMulDiv } from "../../src/libraries/WadMulDiv.sol";
 import { LnExpMath } from "../../src/libraries/LnExpMath.sol";
 import { FeeController } from "../../src/libraries/FeeController.sol";
 import { DiamondSplit } from "../../src/libraries/DiamondSplit.sol";
-import { CpmmMath } from "../../src/libraries/CpmmMath.sol";
 import { RiptideErrors } from "../../src/types/RiptideErrors.sol";
+import { CpmmMath } from "../differential/CpmmMath.sol";
 
 contract MathFuzzTest is Test {
     uint256 internal constant BPS = 1e7;
@@ -26,16 +26,7 @@ contract MathFuzzTest is Test {
         assertGe(retain, betaFloor);
     }
 
-    function testFuzz_feeControllerPiBounds(
-        uint24 feeMin,
-        uint24 feeMax,
-        uint24 feePrev,
-        int64 integralPrev,
-        uint64 kp,
-        uint64 ki,
-        uint64 iMax,
-        uint24 target
-    ) public {
+    function testFuzz_feeControllerPiBounds(uint24 feeMin, uint24 feeMax, uint24 feePrev, int64 integralPrev, uint64 kp, uint64 ki, uint64 iMax, uint24 target) public {
         feeMin = uint24(bound(feeMin, 1, type(uint24).max - 2));
         feeMax = uint24(bound(feeMax, feeMin + 1, type(uint24).max));
         feePrev = uint24(bound(feePrev, feeMin, feeMax));

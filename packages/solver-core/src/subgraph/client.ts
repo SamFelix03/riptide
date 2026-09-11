@@ -25,6 +25,56 @@ export type SubgraphQueryResult = {
   strategies: SubgraphStrategyRow[];
 };
 
+export type ProtocolStats = {
+  id: string;
+  totalFillVolume: string;
+  totalRecapture: string;
+  fillCount: string;
+  rebalanceCount: string;
+};
+
+export type MarketRecaptureRow = {
+  id: string;
+  fillVolume: string;
+  recaptureVolume: string;
+};
+
+export type FillRow = {
+  id: string;
+  amountIn: string;
+  amountOut: string;
+  feeBpsApplied: number;
+  sigmaWad: string;
+  blockNumber: string;
+  timestamp: string;
+  txHash: string;
+  strategy: { id: string; strategyKey: string };
+  market: { id: string };
+};
+
+export type RebalanceRow = {
+  id: string;
+  retainToLPWad: string;
+  payToResolverWad: string;
+  surplusWad: string;
+  revealedPriceWad: string;
+  blockNumber: string;
+  timestamp: string;
+  txHash: string;
+  strategy: { id: string; strategyKey: string };
+  market: { id: string };
+};
+
+export type ControllerStateRow = {
+  id: string;
+  sigmaWad: string;
+  feeTarget: number;
+  feeReported: number;
+  timestamp: string;
+  blockNumber: string;
+  strategy: { id: string; strategyKey: string };
+};
+
 const ZERO_KEY = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 async function gql<T>(subgraphUrl: string, query: string, variables?: Record<string, unknown>): Promise<T> {
@@ -75,30 +125,6 @@ export async function queryMetaBlock(subgraphUrl: string): Promise<GraphMeta> {
   return data._meta;
 }
 
-/** Demo market id = keccak256(abi.encode(MARKET_ID_DOMAIN, base, quote)). Lazy — needs a live manifest. */
-export function demoMarketId(chainId = 31337): string {
-  const manifest = loadManifest(chainId);
-  return marketId(manifest.demoTokens.base, manifest.demoTokens.quote);
-}
-
-export function demoMarketIdFromTokens(base: `0x${string}`, quote: `0x${string}`): string {
-  return marketId(base, quote);
-}
-
-export type ProtocolStats = {
-  id: string;
-  totalFillVolume: string;
-  totalRecapture: string;
-  fillCount: string;
-  rebalanceCount: string;
-};
-
-export type MarketRecaptureRow = {
-  id: string;
-  fillVolume: string;
-  recaptureVolume: string;
-};
-
 const PROTOCOL_STATS_QUERY = `
   query ProtocolStats($id: ID!) {
     _meta { block { number timestamp } }
@@ -134,42 +160,6 @@ export async function queryRecaptureByMarket(subgraphUrl: string): Promise<Marke
   return data.markets;
 }
 
-export type FillRow = {
-  id: string;
-  amountIn: string;
-  amountOut: string;
-  feeBpsApplied: number;
-  sigmaWad: string;
-  blockNumber: string;
-  timestamp: string;
-  txHash: string;
-  strategy: { id: string; strategyKey: string };
-  market: { id: string };
-};
-
-export type RebalanceRow = {
-  id: string;
-  retainToLPWad: string;
-  payToResolverWad: string;
-  surplusWad: string;
-  revealedPriceWad: string;
-  blockNumber: string;
-  timestamp: string;
-  txHash: string;
-  strategy: { id: string; strategyKey: string };
-  market: { id: string };
-};
-
-export type ControllerStateRow = {
-  id: string;
-  sigmaWad: string;
-  feeTarget: number;
-  feeReported: number;
-  timestamp: string;
-  blockNumber: string;
-  strategy: { id: string; strategyKey: string };
-};
-
 const RECENT_FILLS_QUERY = `
   query RecentFills($first: Int!) {
     fills(first: $first, orderBy: timestamp, orderDirection: desc) {
@@ -183,6 +173,39 @@ const RECENT_FILLS_QUERY = `
 export async function queryRecentFills(subgraphUrl: string, first = 20): Promise<FillRow[]> {
   const data = await gql<{ fills: FillRow[] }>(subgraphUrl, RECENT_FILLS_QUERY, { first });
   return data.fills;
+}
+
+export type RouteRow = {
+  id: string;
+  payer: string;
+  recipient: string;
+  kind: number;
+  tokenIn: string;
+  tokenOut: string;
+  amountIn: string;
+  amountOut: string;
+  limit: string;
+  fillCount: number;
+  blockNumber: string;
+  timestamp: string;
+  txHash: string;
+  market: { id: string };
+};
+
+const RECENT_ROUTES_QUERY = `
+  query RecentRoutes($first: Int!) {
+    routes(first: $first, orderBy: timestamp, orderDirection: desc) {
+      id payer recipient kind tokenIn tokenOut amountIn amountOut limit fillCount
+      blockNumber timestamp txHash
+      market { id }
+    }
+  }
+`;
+
+/** Atomic multi-fill taker settlements (RiptideBatchExecutor.RouteExecuted). */
+export async function queryRecentRoutes(subgraphUrl: string, first = 20): Promise<RouteRow[]> {
+  const data = await gql<{ routes: RouteRow[] }>(subgraphUrl, RECENT_ROUTES_QUERY, { first });
+  return data.routes;
 }
 
 const RECENT_REBALANCES_QUERY = `
@@ -326,3 +349,11 @@ export async function queryStrategyCumulativeRecapture(
   }
   return total.toString();
 }
+
+/** Demo market id = keccak256(abi.encode(MARKET_ID_DOMAIN, base, quote)). */
+export function demoMarketId(chainId = 31337): string {
+  const manifest = loadManifest(chainId);
+  return marketId(manifest.demoTokens.base, manifest.demoTokens.quote);
+}
+
+export const DEMO_MARKET_ID = demoMarketId();

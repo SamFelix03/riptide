@@ -3,7 +3,7 @@ pragma solidity 0.8.30;
 
 import { RiptideVolatilityOracle } from "../../src/oracle/RiptideVolatilityOracle.sol";
 
-/// @notice Test harness exposing internal state seeding and negative-control paths.
+/// @notice Test harness exposing internal state seeding.
 contract RiptideVolatilityOracleHarness is RiptideVolatilityOracle {
     constructor(address router_, address swapRouter_, address volIndexer_)
         RiptideVolatilityOracle(router_, swapRouter_, volIndexer_)
@@ -30,14 +30,10 @@ contract RiptideVolatilityOracleHarness is RiptideVolatilityOracle {
         return _observePrice(strategyKey, priceWad, ts, 0, false);
     }
 
-    function observeWithLogReturn(
-        bytes32 strategyKey,
-        int256 logReturnWad,
-        uint128 priceWad,
-        uint40 ts,
-        uint128 gkTermWad,
-        bool useGk
-    ) external returns (uint128) {
+    function observeWithLogReturn(bytes32 strategyKey, int256 logReturnWad, uint128 priceWad, uint40 ts, uint128 gkTermWad, bool useGk)
+        external
+        returns (uint128)
+    {
         return _observeWithLogReturn(strategyKey, logReturnWad, priceWad, ts, gkTermWad, useGk);
     }
 }

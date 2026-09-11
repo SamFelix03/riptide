@@ -1,7 +1,6 @@
 import type { PublicClient, WalletClient } from "viem";
 
 import { getRiptideVolatilityOracle, loadManifest, riptideVolatilityOracleAbi } from "@riptide/contracts";
-import { assertChainSeeded } from "@riptide/solver-core";
 
 import type { VolIndexerConfig } from "./config.js";
 import { fetchPriceObservation, type PriceObservation } from "./feed.js";
@@ -20,7 +19,6 @@ export async function observeAllStrategies(
   observation?: PriceObservation,
 ): Promise<ObserveResult[]> {
   const manifest = loadManifest(config.chainId);
-  await assertChainSeeded(publicClient, manifest);
   const oracle = getRiptideVolatilityOracle(publicClient, manifest.oracle);
   const obs = observation ?? (await fetchPriceObservation(manifest, publicClient, config.priceSourceUrl, config.chainlinkFeed));
   const results: ObserveResult[] = [];
@@ -30,7 +28,7 @@ export async function observeAllStrategies(
 
     const sigmaBefore = await oracle.read.sigmaWad([strategyKey]);
 
-    const hash = await walletClient.writeContract({
+    await walletClient.writeContract({
       address: manifest.oracle,
       abi: riptideVolatilityOracleAbi,
       functionName: "observe",
@@ -38,7 +36,6 @@ export async function observeAllStrategies(
       chain: walletClient.chain,
       account: walletClient.account!,
     });
-    await publicClient.waitForTransactionReceipt({ hash });
 
     const sigmaAfter = await oracle.read.sigmaWad([strategyKey]);
     results.push({ strategyId: seeded.id, strategyKey, sigmaBefore, sigmaAfter });
@@ -59,7 +56,7 @@ export async function observeStrategyRaw(
   const manifest = loadManifest(config.chainId);
   const oracle = getRiptideVolatilityOracle(publicClient, manifest.oracle);
 
-  const hash = await walletClient.writeContract({
+  await walletClient.writeContract({
     address: manifest.oracle,
     abi: riptideVolatilityOracleAbi,
     functionName: "observe",
@@ -67,7 +64,6 @@ export async function observeStrategyRaw(
     chain: walletClient.chain,
     account: walletClient.account!,
   });
-  await publicClient.waitForTransactionReceipt({ hash });
 
   return oracle.read.sigmaWad([strategyKey]);
 }

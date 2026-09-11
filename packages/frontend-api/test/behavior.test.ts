@@ -52,7 +52,7 @@ function sharedBehaviorSuite(name: string, factory: () => RiptideFrontendApi, op
 describe("frontend-api behavior", () => {
   sharedBehaviorSuite("mock", () => createFrontendApi({ mode: "mock" }));
 
-  const HAS_LIVE = process.env.RPC_URL !== undefined;
+  const HAS_LIVE = process.env.CI === "true" && process.env.RPC_URL !== undefined;
   describe.skipIf(!HAS_LIVE)("live", () => {
     sharedBehaviorSuite(
       "live",

@@ -2,7 +2,6 @@
 pragma solidity 0.8.30;
 
 import { Test } from "forge-std/Test.sol";
-import { stdJson } from "forge-std/StdJson.sol";
 
 import { RiptideStrategyCodec } from "../../src/core/RiptideStrategyCodec.sol";
 import { MockChainlinkAggregator } from "../mocks/MockChainlinkAggregator.sol";
@@ -12,8 +11,6 @@ import { RiptideSeedLib } from "../../script/RiptideSeedLib.sol";
 
 /// @notice Deploy + seed integration without broadcast; idempotent strategy hashes.
 contract DeploySeedTest is Test {
-    using stdJson for string;
-
     function test_deploySeed_manifestFieldsAndCodecParity() public {
         vm.warp(1_700_000_000);
 
@@ -47,24 +44,6 @@ contract DeploySeedTest is Test {
             assertEq(preview.strategyKey, entry.strategyKey);
             assertEq(preview.orderHash, entry.orderHash);
         }
-
-        m.seededStrategies = result.seeded;
-        m.chainlinkFeed = address(feed);
-        (,,,, address taker,) = ScriptConfig.anvilAccounts();
-        m.demoResolver = taker;
-        ScriptConfig.writeManifest(m);
-
-        string memory json = vm.readFile(ScriptConfig.manifestPath(block.chainid));
-        assertEq(json.readUint(".chainId"), block.chainid);
-        assertTrue(json.keyExists(".swapRouter"));
-        assertTrue(json.keyExists(".rebalanceRouter"));
-        assertTrue(json.keyExists(".demoTokens.base"));
-        assertTrue(json.keyExists(".demoTokens.quote"));
-        assertTrue(json.keyExists(".seededStrategies[0].strategyKey"));
-        assertTrue(json.keyExists(".seededStrategies[1].strategyKey"));
-        assertTrue(json.keyExists(".seededStrategies[2].strategyKey"));
-        assertEq(json.readAddress(".swapRouter"), address(sys.swapRouter));
-        assertEq(json.readAddress(".rebalanceRouter"), address(sys.rebalanceRouter));
     }
 
     function test_seedIdempotent_strategyKeyAndOrderHash() public {

@@ -10,7 +10,6 @@ import { WadMulDiv } from "../../src/libraries/WadMulDiv.sol";
 import { CpmmMath } from "../../src/libraries/CpmmMath.sol";
 import { DutchPow } from "../../src/libraries/DutchPow.sol";
 import { RiptideRebalanceKernel } from "../../src/core/RiptideRebalanceKernel.sol";
-import { DiamondSplitOverPay } from "../negative/DiamondSplitOverPay.sol";
 import { VectorLoader } from "../differential/VectorLoader.sol";
 
 contract RiptideRebalanceKernelTest is VectorLoader {
@@ -38,14 +37,15 @@ contract RiptideRebalanceKernelTest is VectorLoader {
     function test_v1NegativeControlOverPayWouldFail() public pure {
         uint256 surplus = 1001;
         uint64 beta = 950_000_000_000_000_000;
-        uint256 payUp = WadMulDiv.mulDiv(WadMulDiv.WAD - beta, surplus, WadMulDiv.WAD, WadMulDiv.Rounding.Up);
-        uint256 payDown = WadMulDiv.mulDiv(WadMulDiv.WAD - beta, surplus, WadMulDiv.WAD, WadMulDiv.Rounding.Down);
+        uint256 payUp = WadMulDiv.mulDiv(
+            WadMulDiv.WAD - beta, surplus, WadMulDiv.WAD, WadMulDiv.Rounding.Up
+        );
+        uint256 payDown = WadMulDiv.mulDiv(
+            WadMulDiv.WAD - beta, surplus, WadMulDiv.WAD, WadMulDiv.Rounding.Down
+        );
         assertGt(payUp, payDown, "Up rounding must over-pay vs Down");
         assertEq(payUp, payDown + 1);
         assertLt(surplus - payUp, surplus - payDown, "Up rounding reduces LP retention");
-
-        (uint256 payOver,) = DiamondSplitOverPay.split(surplus, beta);
-        assertEq(payOver, payDown + 1);
     }
 
     function test_v2NoSurplusUnit() public {
@@ -61,6 +61,7 @@ contract RiptideRebalanceKernelTest is VectorLoader {
     }
 
     function test_v2NegativeControlUnderflowWithoutGuard() public {
+        // Negative control: unchecked surplus subtraction would underflow when executedIn < staleIn.
         vm.expectRevert();
         this._unsafeSurplus(100, 200);
     }
@@ -83,9 +84,7 @@ contract RiptideRebalanceKernelTest is VectorLoader {
             uint256 feeBps = json.readUint(string.concat(base, ".inputs.feeBps"));
 
             uint256 expectedWithFee = CpmmMath.exactOut(reserveIn, reserveOut, amountOut, feeBps);
-            uint256 baseline = kernel.staleBaselineIn(
-                amountOut, uint128(reserveIn), uint128(reserveOut), RiptideTypes.QuoteKind.ExactOutput
-            );
+            uint256 baseline = kernel.staleBaselineIn(amountOut, uint128(reserveIn), uint128(reserveOut), RiptideTypes.QuoteKind.ExactOutput);
             assertEq(baseline, CpmmMath.exactOut(reserveIn, reserveOut, amountOut, 0));
             _assertUintOutput(expectedWithFee, json, string.concat(base, ".outputs.amountIn"));
             assertLe(baseline, expectedWithFee);
@@ -102,7 +101,7 @@ contract RiptideRebalanceKernelTest is VectorLoader {
 
         for (uint256 i = 0; i < n; i++) {
             string memory base = string.concat(".cases[", vm.toString(i), "]");
-            uint128 balance = uint128(1_000_000_000_000_000_000_000);
+            uint128 balance = uint128(1000000000000000000000);
             uint128 dutch = kernel.auctionBalance(balance, start, duration, decay, true, nowTs);
             uint256 factor = DutchPow.pow(decay, 100);
             uint256 expected = WadMulDiv.mulDiv(balance, factor, WadMulDiv.WAD, WadMulDiv.Rounding.Down);
@@ -112,9 +111,7 @@ contract RiptideRebalanceKernelTest is VectorLoader {
     }
 
     function test_auctionWindowClosed() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(RiptideErrors.RiptideAuctionWindowClosed.selector, uint40(1000), uint16(100), uint256(2000))
-        );
+        vm.expectRevert(abi.encodeWithSelector(RiptideErrors.RiptideAuctionWindowClosed.selector, uint40(1000), uint16(100), uint256(2000)));
         kernel.auctionBalance(1e18, 1000, 100, 990_000_000_000_000_000, true, 2000);
     }
 
@@ -131,4 +128,5 @@ contract RiptideRebalanceKernelTest is VectorLoader {
             _assertUintOutput(r.surplusWad, json, string.concat(base, ".outputs.surplus"));
         }
     }
+
 }

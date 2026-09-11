@@ -1,4 +1,4 @@
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { cpmmExactIn, cpmmExactOut, lvrRateCpmm, lvrRateGeneral } from "../../src/cpmm.js";
 import { WAD } from "../../src/constants.js";
 import { mulDiv, Rounding } from "../../src/fullPrecision.js";

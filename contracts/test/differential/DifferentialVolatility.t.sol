@@ -7,7 +7,6 @@ import { stdJson } from "forge-std/StdJson.sol";
 
 contract DifferentialVolatilityTest is VectorLoader {
     using stdJson for string;
-
     function test_volatilityVectors() public view {
         string memory json = _loadVector("volatility_v1.json");
         uint256 n = _caseCount(json);
@@ -18,7 +17,7 @@ contract DifferentialVolatilityTest is VectorLoader {
             if (keccak256(bytes(id)) == keccak256("vol_stale_freeze")) {
                 uint128 sigmaPrev = uint128(json.readUint(string.concat(base, ".inputs.sigmaPrev")));
                 uint128 sigmaCandidate = uint128(json.readUint(string.concat(base, ".inputs.sigmaCandidate")));
-                bool isStale = json.readUint(string.concat(base, ".inputs.isStale")) != 0;
+                bool isStale = json.readBool(string.concat(base, ".inputs.isStale"));
                 uint128 frozen = VolatilityMath.applyStaleFreeze(sigmaPrev, sigmaCandidate, isStale);
                 _assertUintOutput(frozen, json, string.concat(base, ".outputs.sigmaWad"));
                 continue;

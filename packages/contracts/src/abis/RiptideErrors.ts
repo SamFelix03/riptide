@@ -7,6 +7,7 @@ export const riptideErrorsAbi = [
     inputs: [
       { name: "start", type: "uint40" },
       { name: "duration", type: "uint16" },
+      { name: "nowTs", type: "uint256" },
     ],
   },
   {

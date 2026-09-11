@@ -48,12 +48,8 @@ function readBytes32(buf: Uint8Array, offset: number): `0x${string}` {
   return `0x${hex}` as `0x${string}`;
 }
 
-function isZeroAddress(addr: string): boolean {
-  return BigInt(addr) === 0n;
-}
-
 export function validateStructure(s: Strategy): void {
-  if (isZeroAddress(s.baseToken) || isZeroAddress(s.quoteToken) || isZeroAddress(s.oracle.feed) || isZeroAddress(s.feeProvider)) {
+  if (s.baseToken === "0x0" || s.quoteToken === "0x0" || s.oracle.feed === "0x0" || s.feeProvider === "0x0") {
     throw new Error("RiptideZeroAddress");
   }
   if (s.baseToken.toLowerCase() === s.quoteToken.toLowerCase()) {

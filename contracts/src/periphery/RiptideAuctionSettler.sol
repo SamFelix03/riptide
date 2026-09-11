@@ -76,7 +76,9 @@ contract RiptideAuctionSettler {
             })
         );
 
-        (uint256 amountIn,,) = REBALANCE_ROUTER.swap(order, s.quoteToken, s.baseToken, outWad, takerData);
+        (uint256 amountIn,,) = REBALANCE_ROUTER.swap(
+            order, s.quoteToken, s.baseToken, outWad, takerData
+        );
 
         if (amountIn > maxInWad) revert RiptideErrors.RiptideSlippageExceeded(amountIn, maxInWad);
 

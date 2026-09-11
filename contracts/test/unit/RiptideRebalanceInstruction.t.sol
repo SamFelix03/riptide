@@ -2,7 +2,6 @@
 pragma solidity 0.8.30;
 
 import { Test } from "forge-std/Test.sol";
-
 import { RiptideRebalanceKernel } from "../../src/core/RiptideRebalanceKernel.sol";
 import { RiptideTypes } from "../../src/types/RiptideTypes.sol";
 import { RiptideErrors } from "../../src/types/RiptideErrors.sol";

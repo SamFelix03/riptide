@@ -173,6 +173,24 @@ export class MockFrontendApi implements RiptideFrontendApi {
     return { ...FIXTURE_RECAPTURE, scope };
   }
 
+  async listRoutes(_limit = 20) {
+    return [
+      {
+        routeId: "0x" + "11".repeat(32),
+        txHash: "0x" + "22".repeat(32),
+        blockNumber: "1000",
+        timestamp: "1700000000",
+        payer: "0x0000000000000000000000000000000000000009",
+        recipient: "0x0000000000000000000000000000000000000009",
+        kind: "ExactInput" as const,
+        amountIn: "1000000000000000000",
+        amountOut: "498000000000000",
+        limit: "497000000000000",
+        fillCount: 3,
+      },
+    ];
+  }
+
   async streamEvents(_filter: EventFeedFilter) {
     return FIXTURE_EVENTS;
   }

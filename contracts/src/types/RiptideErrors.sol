@@ -21,6 +21,7 @@ library RiptideErrors {
     error RiptideStrategyHashMismatch(bytes32 supplied, bytes32 computed);
     error RiptideStaleVersion(uint64 expected, uint64 actual);
     error RiptideStrategyNotActive(bytes32 strategyHash);
+    error RiptideRebalanceAuctionStartMissing(bytes32 strategyKey);
     error RiptideDeadlineExpired(uint40 deadline, uint256 timestamp);
     error RiptideUnauthorizedResolver(address caller);
     error RiptideUnauthorizedObserver(address caller);
@@ -30,7 +31,6 @@ library RiptideErrors {
     error RiptideNoSurplus(int256 surplusWad);
     error RiptideAuctionWindowClosed(uint40 start, uint16 duration, uint256 nowTs);
     error RiptideStaleBaseline();
-    error RiptideRebalanceAuctionStartMissing(bytes32 strategyKey);
 
     // fee guard
     error RiptideFeeOutOfRange(uint256 feeBps, uint256 surplusBps);

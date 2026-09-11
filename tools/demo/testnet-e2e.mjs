@@ -676,12 +676,21 @@ async function main() {
     { address: manifest.chainlinkFeed, abi: feedAbi, functionName: "setRound", args: [SKEW_ANSWER, now.timestamp] },
     "skew oracle to 5000 USD",
   );
-  const [, answer] = await publicClient.readContract({
-    address: manifest.chainlinkFeed,
-    abi: feedAbi,
-    functionName: "latestRoundData",
-  });
-  if (BigInt(answer) !== SKEW_ANSWER) throw new Error(`feed answer ${answer} != ${SKEW_ANSWER}`);
+  // Public RPC endpoints are load balanced, so a read issued immediately after a
+  // confirmed write can land on a node that has not yet caught up to that block.
+  // Poll instead of asserting once.
+  let answer = 0n;
+  for (let attempt = 0; attempt < 15; attempt++) {
+    const [, a] = await publicClient.readContract({
+      address: manifest.chainlinkFeed,
+      abi: feedAbi,
+      functionName: "latestRoundData",
+    });
+    answer = BigInt(a);
+    if (answer === SKEW_ANSWER) break;
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  if (answer !== SKEW_ANSWER) throw new Error(`feed answer ${answer} != ${SKEW_ANSWER}`);
   pass("skew demo Chainlink feed");
 
   const s1 = shipped[0];

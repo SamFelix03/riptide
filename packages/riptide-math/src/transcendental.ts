@@ -1,6 +1,7 @@
 import { EXP_WAD_MAX, EXP_WAD_MIN, WAD } from "./constants.js";
 import { mulDiv, Rounding, sqrtWad } from "./fullPrecision.js";
 
+// Solady FixedPointMathLib expWad / lnWad port (v0.1.26 domains).
 export function expWad(x: bigint): bigint {
   if (x <= EXP_WAD_MIN) return 0n;
   if (x >= EXP_WAD_MAX) throw new Error("exp out of domain");

@@ -14,11 +14,7 @@ library RiptideProgramBuilder {
 
     error OpcodeNotFound();
 
-    function init(function(Context memory, bytes calldata) internal[] memory opcodes)
-        internal
-        pure
-        returns (RiptideProgram memory)
-    {
+    function init(function(Context memory, bytes calldata) internal[] memory opcodes) internal pure returns (RiptideProgram memory) {
         return RiptideProgram({ opcodes: opcodes });
     }
 
@@ -30,11 +26,11 @@ library RiptideProgramBuilder {
         return build(self, instruction, "");
     }
 
-    function build(
-        RiptideProgram memory self,
-        function(Context memory, bytes calldata) internal instruction,
-        bytes memory args
-    ) internal pure returns (bytes memory) {
+    function build(RiptideProgram memory self, function(Context memory, bytes calldata) internal instruction, bytes memory args)
+        internal
+        pure
+        returns (bytes memory)
+    {
         uint8 opcode = findOpcode(self, instruction);
         return abi.encodePacked(opcode, args.length.toUint8(), args);
     }

@@ -58,7 +58,7 @@ function parseKind(kind: string): QuoteKind {
   throw new Error(`invalid kind: ${kind}`);
 }
 
-/** Anvil account #4 — matches demo taker / resolver role. */
+/** Anvil account #4 — matches apps/web demo Taker / Resolver role. */
 const DEFAULT_TAKER = "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65" as `0x${string}`;
 
 export async function handleRoute(config: SolverConfig, client: PublicClient, body: RouteRequest): Promise<RouteResponse> {
@@ -121,6 +121,7 @@ export async function handleRoute(config: SolverConfig, client: PublicClient, bo
       c.strategy.maker,
       strategyToContractTuple({
         ...c.strategy,
+        // Order bytes must match the shipped Aqua order (committed reserves), not live lens balances.
         reserveBaseWad: c.strategy.reserveBaseWad,
         reserveQuoteWad: c.strategy.reserveQuoteWad,
       }),

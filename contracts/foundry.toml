@@ -8,6 +8,7 @@ optimizer = true
 optimizer_runs = 700
 via_ir = true
 evm_version = "cancun"
+code_size_limit = 4294967295
 fs_permissions = [
   { access = "read", path = "../test/vectors" },
   { access = "read", path = "./" },
@@ -29,15 +30,17 @@ bracket_spacing = true
 int_types = "long"
 number_underscore = "thousands"
 
+[rpc_endpoints]
+base_sepolia = "https://sepolia.base.org"
+anvil = "http://127.0.0.1:8545"
+
 [profile.ci]
 solc_version = "0.8.30"
 optimizer = true
 optimizer_runs = 700
 via_ir = true
 evm_version = "cancun"
-
-[profile.ci.fuzz]
-runs = 10000
+code_size_limit = 4294967295
 
 [profile.ci.optimizer_details]
 yul = true

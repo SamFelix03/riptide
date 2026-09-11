@@ -41,16 +41,7 @@ class TestReferenceMath(unittest.TestCase):
         fee_min = Decimal("30000")
         fee_max = Decimal("500000")
         target = rm.fee_target(Decimal("300000000000000000"), Decimal("100000000000000000"), fee_min, fee_max)
-        reported, _ = rm.pi_step(
-            Decimal("100000"),
-            Decimal(0),
-            target,
-            Decimal("500000000000000000"),
-            Decimal("100000000000000000"),
-            Decimal("1000000000000000000"),
-            fee_min,
-            fee_max,
-        )
+        reported, _ = rm.pi_step(Decimal("100000"), Decimal(0), target, Decimal("500000000000000000"), Decimal("100000000000000000"), Decimal("1000000000000000000"), fee_min, fee_max)
         self.assertGreaterEqual(reported, fee_min)
         self.assertLessEqual(reported, fee_max)
 

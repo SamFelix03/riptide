@@ -13,4 +13,3 @@ export * from "./orderPayload.js";
 export * from "./chainReady.js";
 export * from "./subgraph/client.js";
 export * from "./rpcEvents.js";
-export { getRiptideLens, getRiptideQuoter, parseManifestFile } from "@riptide/contracts";
