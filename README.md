@@ -174,23 +174,6 @@ You keep your tokens in your own wallet. Aqua holds an allowance record, not you
 
 **[`docs/TEST_GUIDE.md`](docs/TEST_GUIDE.md) — run the whole thing locally.** From a clean clone to both mechanisms settling on a local Anvil chain, in three terminals. Covers the test suite and its negative controls, exercising each mechanism through scripts, driving the self-reinforcing loop by hand, the off-chain services, and a short section on verifying the 1inch integration specifically.
 
-## Fit with the ETHOnline 1inch track
-
-The 1inch track at ETHOnline is *["Build an Aqua App"](https://ethglobal.com/events/ethonline2026/prizes)*:
-
-> "Create a custom Aqua app that implements a sophisticated DeFi position. If you use SwapVM, you may modify SwapVM opcodes and define your own instructions."
-
-with three qualification requirements and one scoring note. How RIPTIDE lines up:
-
-| Track requirement | Status |
-|---|---|
-| Official Aqua/SwapVM contracts must be used | **Yes.** Pinned as git submodules at `1inch/swap-vm@v1.0.2` (`32c687c2`) and `1inch/aqua@v1.0.0` (`81c26e46`) — see [`DEPENDENCY_LOCK.md`](DEPENDENCY_LOCK.md). The routers inherit `SwapVM` directly. A mainnet fork test ships real WETH/USDC into the **canonical 1inch Aqua registry** at `0x1111113CCf1426A8E30e2bfF5E005d929bF6a90a` and reads them back — [`Provenance.t.sol`](contracts/test/fork/Provenance.t.sol). |
-| Onchain token transfers demonstrated (local forks acceptable) | **Yes.** Live on Base Sepolia with three seeded strategies, real ERC-20 movement through Aqua `pull`/`push`. Also reproducible on a local Anvil with `pnpm demo:reset`. |
-| Proper Git commit history | **Partially.** 9 commits across 2026-08-28 → 09-07. Not a single-commit entry, but one commit (`74cdea3`) introduces 377 files at once. See [the note below](#known-limitations-and-honest-edges). |
-| *Scoring: projects using SwapVM score higher* | **RIPTIDE is SwapVM end to end.** Both mechanisms are SwapVM programs, and it defines a **custom instruction** at opcode index 34 — exactly the "define your own instructions" the track invites. |
-
-The design choice worth calling out: the track permits modifying SwapVM. RIPTIDE deliberately doesn't fork it. The dynamic fee runs through 1inch's existing `_aquaDynamicProtocolFeeAmountInXD` instruction via the standard `IProtocolFeeProvider` hook, and the Dutch auction and anti-sandwich decay are upstream instructions. Only one genuinely new instruction is added, through the documented `_instructions()` override. All five Aqua primitives — `ship`, `dock`, `pull`, `push`, `safeBalances` — are load-bearing.
-
 ---
 
 ## Deployed addresses
@@ -716,34 +699,5 @@ Only the Reown/WalletConnect project id is set on the service rather than in the
 
 Toolchain: Solidity 0.8.30, Foundry 1.2.3-stable, Node ≥20, pnpm 9.15.0, Python 3.11+. Exact pins and licences in [`DEPENDENCY_LOCK.md`](DEPENDENCY_LOCK.md); environment variables in [`ENV.md`](ENV.md); build-time decisions in [`RESOLUTIONS.md`](RESOLUTIONS.md); demo script in [`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md).
 
----
-
-## Known limitations and honest edges
-
-This project keeps an honesty ledger ([`docs/SOURCES.md`](docs/SOURCES.md)) and an in-app honesty panel. In that spirit, the following are real and unresolved.
-
-**`Route.fills` is never linked.** Atomic routes are indexed and shown, but individual `Fill` rows cannot be attributed to the `Route` that contained them: `SwapFilled`'s first field is named `routeId` in the ABI yet the swap router emits the **orderHash** there ([`RiptideSwapVMRouter.sol:108`](contracts/src/core/RiptideSwapVMRouter.sol#L108)), and the router has no way to know the batch id. Threading it through would mean changing the swap path, which currently has very little EIP-170 headroom — so route-level drill-down stays out of reach without a size-reducing refactor.
-
-**Exact-input splitting is fee-blind.** The allocation is proportional to available Aqua capacity only; `feeBps` never enters. Three pools at 0.1% / 0.3% / 0.5% with equal capacity each receive a third of the order.
-
-**`/v1/quote` and `/v1/route` use different algorithms.** Quote does an equal split with no capacity check; route does capacity-proportional with caps. They can disagree, and for oversized amounts quote returns a number where route correctly throws.
-
-**TypeScript/Python `ln`/`exp` are float64, not arbitrary precision.** [`transcendental.ts`](packages/riptide-math/src/transcendental.ts) and the Python oracle both round-trip through doubles. Measured `ln(2·WAD)`: TS is 35 wei high, Python 9 wei low, and they disagree with each other — so the documented bit-for-bit parity cannot hold on those paths. It has not surfaced because the only committed vector touching `ln` uses inputs that force `ln(1) = 0`. The Dutch-auction exponentiation uses exact integer `powWadInt` and *is* bit-exact.
-
-**Garman–Klass and the stale-freeze are unreachable in production.** The indexer only calls `observe(...)`, which hardcodes `useGk = false`, and it passes `block.timestamp`, so the staleness predicate is never true. Both paths exist and are tested, but nothing in the live pipeline exercises them.
-
-**The Chainlink feed is configured but never read on an execution path.** `assertFeedFresh` has no production caller. σ comes from auction-revealed prices and the off-chain indexer.
-
-**One observation cannot move the fee.** `sigmaFromVar` clamps to `sigmaMin` even at zero variance, so a single rebalance lands σ at the floor and `feeTarget` stays at `feeMin`. Demonstrating the loop needs a series of observations — which is what the vol-indexer supplies.
-
-**Deploy ordering is nonce-fragile.** The oracle and fee provider need router addresses at construction, so [`RiptideDeployer.sol:52-54`](contracts/script/RiptideDeployer.sol#L52-L54) predicts them with `computeCreateAddress(deployer, nonce+3/+4)`. The test helper asserts the predictions; the production path does not.
-
-**The public Base Sepolia RPC rate-limits the route path.** `buildSwapRoute` issues many reads (lens + quoter probe per candidate, then order building). Against `https://sepolia.base.org` this occasionally returns `over rate limit`; a retry succeeds. Point `RPC_URL` at a dedicated endpoint to remove it.
-
-**Specification drift.** The `docs/` set was written against a pre-release SwapVM and still cites a `refs/` mirror that is not in this repository (the real pinned sources are the `contracts/lib/` submodules) and an `IProtocolFeeProvider.getRecipientAndFees` signature that v1.0.2 does not have. [`RESOLUTIONS.md`](RESOLUTIONS.md) is the accurate account of what was actually built; where it and `docs/` disagree, trust `RESOLUTIONS.md` and the code. [`contracts/README.md`](contracts/README.md) documents the shipped contracts as they actually are.
-
-**Not audited.** The 1inch Aqua and SwapVM contracts are audited upstream and treated here as trusted callees. RIPTIDE's own contracts are not audited and are not represented as production-ready. The Diamond β-retention bound is validated statistically by simulation, not proved on-chain.
-
-## Licence and attribution
-
-RIPTIDE's own code is MIT. Pinned dependencies keep their own licences — `1inch/swap-vm` under `LicenseRef-Degensoft-SwapVM-1.1` and `1inch/aqua` under `LicenseRef-Degensoft-Aqua-Source-1.1`; see [`DEPENDENCY_LOCK.md`](DEPENDENCY_LOCK.md). The three research PDFs in `docs/` are redistributed copies of arXiv preprints and remain the property of their authors.
+## Licence
+MIT
