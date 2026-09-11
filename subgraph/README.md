@@ -1,43 +1,160 @@
-# RIPTIDE Subgraph (Phase 17)
+# RIPTIDE Subgraph
 
-Indexes Aqua lifecycle, swap fills, fee controller updates, batch routes, and rebalances for the Anvil deployment.
+What RIPTIDE indexes with The Graph, why it cannot work well without it, and how the pieces fit.
 
-## Path A — Local Graph Node (recommended for Anvil)
+- Live endpoint: [`riptide` on Graph Studio](https://api.studio.thegraph.com/query/1758400/riptide/version/latest)
+- Schema: [`schema.graphql`](schema.graphql) · Manifest: [`subgraph.yaml`](subgraph.yaml) · Mappings: [`src/mappings/`](src/mappings)
+- Local setup: [`../docs/TEST_GUIDE.md` §5](../docs/TEST_GUIDE.md)
 
-### Prerequisites
+---
 
-- Docker Desktop
-- Anvil running with host binding (so Docker can reach it):
+## 1. Why RIPTIDE needs an indexer at all
 
-```powershell
-& "$env:USERPROFILE\.foundry\bin\anvil.exe" --host 0.0.0.0 --chain-id 31337 --code-size-limit 100000 --port 8545
+RIPTIDE is a **single-maker micro-pool** design. There is no shared pool contract holding everyone's liquidity — each maker ships their own strategy into Aqua, with their own curve, fee band and β. That is what makes the economics work, and it is also what creates the discovery problem:
+
+> To quote a swap, you must first know **which strategies exist, which are still active, and what inventory each currently has.**
+
+There is no on-chain registry to enumerate. Aqua is keyed by `strategyHash` and exposes balance getters only — you cannot ask it "list every strategy shipped to this app". And an EVM transaction cannot scan every maker within gas.
+
+So the taker path is: **discover off-chain, verify on-chain.** The subgraph answers "what exists", the contracts re-derive every number that matters. A block-lag or a mapping bug can cause a stale route to revert; it can never authorise a bad fill. That boundary is deliberate and is why an untrusted indexer is safe to depend on.
+
+The second thing it provides is the **proof surface**. RIPTIDE's whole claim is that LVR is being internalised. That claim is a time series — fees charged versus volatility, surplus recaptured versus surplus paid out — and a time series is exactly what an archival indexer gives you and an RPC node does not.
+
+---
+
+## 2. What is indexed
+
+`specVersion 1.0.0`, mapping `apiVersion 0.0.9`, AssemblyScript. Five datasources, nine handlers.
+
+| Datasource | Events → handlers |
+|---|---|
+| **Aqua** (1inch) | `Shipped` → `handleShipped` · `Docked` → `handleDocked` · `Pushed` → `handlePushed` · `Pulled` → `handlePulled` |
+| **RiptideSwapVMRouter** | `StrategyRuntimeInitialized` · `SwapFilled` |
+| **RiptideLvrFeeProvider** | `FeeControllerUpdated` |
+| **RiptideBatchExecutor** | `RouteExecuted` |
+| **RiptideRebalanceRouter** | `RebalanceSettled` |
+
+Indexing 1inch's own Aqua contract alongside RIPTIDE's is the point: strategy **lifecycle** (shipped / docked) and **inventory** (pushed / pulled) are Aqua's events, not ours. All four Aqua handlers filter on the app address so only strategies shipped to the RIPTIDE router are indexed ([`src/mappings/aqua.ts`](src/mappings/aqua.ts)).
+
+### Entities
+
+Eleven entities, split by whether they are a running total or a historical record.
+
+| Entity | Kind | Holds |
+|---|---|---|
+| `Protocol` | mutable | Singleton: chain id, every contract address, cumulative fill volume, **cumulative β-recaptured**, fill/rebalance counts |
+| `Market` | mutable | Ordered base/quote pair, fill volume, recapture volume |
+| `Maker` | mutable | Per-maker volume and recapture |
+| `Strategy` | mutable | Reserves, live Aqua balances, docked flag, version, and **`orderBytes`** |
+| `StrategyKeyIndex` | mutable | Secondary index — see §4 |
+| `Token` | mutable | Symbol, decimals |
+| `Fill` | **immutable** | One swap: amounts, `feeBpsApplied`, the σ that produced it, post-trade reserves, version |
+| `Rebalance` | **immutable** | One settlement: `executedIn`, `staleIn`, `surplus`, `retainToLP`, `payToResolver`, resolver, revealed price |
+| `ControllerState` | **immutable** | One controller step: σ, `feeTarget`, `feeReported` |
+| `Route` | **immutable** | One atomic multi-fill batch: payer, kind, totals, limit, fill count |
+| `MarketSnapshot` | mutable | Hourly buckets of volume and recapture |
+
+The immutable/mutable split is not cosmetic. `@entity(immutable: true)` lets Graph Node skip write-ahead bookkeeping for entities that are only ever appended — and every historical record here (fills, rebalances, controller steps, routes) genuinely is append-only. Aggregates that must be read-modify-written stay mutable.
+
+---
+
+## 3. Graph features actually used
+
+| Feature | Where, and why |
+|---|---|
+| **Multi-datasource indexing** | Five contracts in one subgraph, including 1inch's Aqua. Cross-contract joins (a `Fill` on our router resolving to a `Strategy` created by an Aqua `Shipped`) are the whole reason this is one subgraph and not five. |
+| **`@entity(immutable: true)`** | `Fill`, `Rebalance`, `ControllerState`, `Route` — append-only history, cheaper to index. |
+| **`@derivedFrom`** | Reverse lookups without maintaining arrays by hand: `Market.strategies`, `Maker.strategies`, `Strategy.fills` / `.rebalances` / `.controllerStates`, `Route.fills`. |
+| **`_meta { block }`** | Freshness. Every UI view that reads indexed data shows the indexed block and labels itself stale if it lags — [§5](#5-freshness-is-a-first-class-value). |
+| **`where` filtering** | `strategies(where: { docked: false, market: $market })` — active-strategy discovery in one query. |
+| **`orderBy` / `orderDirection` / `first` / `skip`** | Recent-history feeds, and cursor-free pagination for the recapture sums ([`client.ts:249-283`](../packages/solver-core/src/subgraph/client.ts#L249-L283) pages at 1000 rows). |
+| **`Bytes` for raw calldata** | `Strategy.orderBytes` stores the full `abi.encode(ISwapVM.Order)` — see §4. |
+| **Matchstick unit tests** | [`tests/`](tests) — creation and replay-idempotency per datasource, plus a negative case (a `FeeControllerUpdated` with no index must create nothing). |
+| **Graph Studio** | Versioned deploys (`v0.0.1` … `v0.0.4`) with `version/latest` consumed by the app. |
+
+---
+
+## 4. Two design details worth understanding
+
+### `Strategy.orderBytes` — the field that makes maker-shipped strategies tradeable
+
+A strategy's fee policy, auction policy and salt live **only** in the 226-byte RIPTIDE payload inside the Aqua order. Aqua exposes balance getters and nothing else; neither router stores the policy. So given just `maker + strategyHash` the policy is unrecoverable — and without the policy the Quoter cannot rebuild the SwapVM order, so the strategy cannot be priced.
+
+The one place those bytes are ever visible is Aqua's `Shipped` event, which carries the whole encoded order. So the mapping keeps them:
+
+```ts
+// src/mappings/aqua.ts — handleShipped
+strategy.orderBytes = event.params.strategy;
 ```
 
-- Contracts deployed + seeded (`forge script deploy.s.sol` + `seed.s.sol`)
+The solver decodes them off-chain ([`packages/solver-core/src/orderPayload.ts`](../packages/solver-core/src/orderPayload.ts)) and rebuilds a fully priceable strategy. Without this field, only the three strategies hardcoded in the deployment manifest are routable and **anything a real maker ships through the UI is invisible to takers**. This is the clearest example of The Graph doing something in RIPTIDE that no RPC call can.
 
-### Commands
+### `StrategyKeyIndex` — bridging two identifiers
 
-From repo root:
+RIPTIDE has two identifiers that are deliberately not interchangeable:
+
+```
+strategyHash = keccak256(abi.encode(order))       Aqua's commitment
+strategyKey  = keccak256(abi.encode(maker, salt)) the router's runtime key
+```
+
+Aqua events carry the **hash**; router and fee-provider events carry the **key**. `Strategy` is stored by hash, so `StrategyKeyIndex` is a manual secondary index mapping key → strategy id, letting `handleSwapFilled`, `handleFeeControllerUpdated` and `handleRebalanceSettled` attribute their rows to the right strategy. The fee-provider handler deliberately **returns early** when the index is missing rather than inventing a dangling row.
+
+---
+
+## 5. Freshness is a first-class value
+
+`getFreshness` ([`packages/frontend-api/src/live/index.ts`](../packages/frontend-api/src/live/index.ts)) compares the subgraph's `_meta.block` against the chain head and returns `laggingSeconds`. Every quote carries it, and the UI renders a badge that flips to "stale" past a threshold.
+
+This exists because a router built on a stale snapshot can quote liquidity that has already moved. The honest behaviour is to tell the user the snapshot's age rather than silently claim best execution — so freshness is returned alongside the numbers it qualifies, not hidden.
+
+---
+
+## 6. Where the data is consumed
+
+| Consumer | Uses it for |
+|---|---|
+| [`solver-core/src/subgraph/discovery.ts`](../packages/solver-core/src/subgraph/discovery.ts) | Active-strategy discovery, then decodes `orderBytes` and prices each candidate through the on-chain Quoter |
+| [`solver-core/src/subgraph/client.ts`](../packages/solver-core/src/subgraph/client.ts) | All 10 typed queries |
+| [`frontend-api/src/live/index.ts`](../packages/frontend-api/src/live/index.ts) | `getRecaptureStats`, `streamEvents`, `listRoutes`, `getControllerState`, `getFreshness`, per-strategy cumulative recapture |
+| [`services/solver-api`](../services/solver-api) | Discovery behind `POST /v1/quote` and `/v1/route`; subgraph reachability in `/readyz` |
+| [`services/resolver-bot`](../services/resolver-bot) | Active-strategy pre-filter before scanning for mispricing |
+| [`services/liquidity-mcp`](../services/liquidity-mcp) | `get_riptide_recapture_stats`, and comparison against a standardised Uniswap V3 subgraph |
+
+### The RPC fallback
+
+If `subgraphUrl` is empty, every read falls back to `getLogs` from the deploy block ([`packages/solver-core/src/rpcEvents.ts`](../packages/solver-core/src/rpcEvents.ts)). The app still works — quotes, swaps, auctions and analytics all function.
+
+What is lost is instructive: no `orderBytes`, so **maker-shipped strategies stop being routable**; no `_meta`, so freshness degrades to "unknown"; no server-side aggregation, so recapture totals are recomputed by scanning logs on every request; and no efficient history, so feeds get slower as the chain grows. The fallback is a correctness guarantee, not a substitute.
+
+---
+
+## 7. Running it
+
+### Local Graph Node (for Anvil)
+
+Needs Docker Desktop, plus Anvil bound to `0.0.0.0` so the container can reach it:
 
 ```bash
-pnpm subgraph:up            # start postgres + ipfs + graph-node (Docker)
-pnpm subgraph:deploy-local  # codegen, build, deploy, patch SUBGRAPH_URL in .env files
-pnpm subgraph:down          # stop Docker stack
+anvil --host 0.0.0.0 --chain-id 31337 --code-size-limit 100000 --port 8545
+pnpm demo:reset          # deploy + seed first
 ```
 
-Or from `subgraph/`:
+Then, from the repo root:
 
 ```bash
-pnpm run deploy:local
+pnpm subgraph:up            # postgres + ipfs + graph-node
+pnpm subgraph:deploy-local  # codegen, build, deploy, patch SUBGRAPH_URL into .env files
+pnpm subgraph:down          # stop the stack
 ```
 
-### Query URL (auto-set after deploy)
+Query URL, set automatically after deploy:
 
 ```
 http://localhost:8000/subgraphs/name/riptide/riptide-anvil
 ```
 
-Test:
+Smoke-test it:
 
 ```bash
 curl -X POST http://localhost:8000/subgraphs/name/riptide/riptide-anvil \
@@ -45,41 +162,41 @@ curl -X POST http://localhost:8000/subgraphs/name/riptide/riptide-anvil \
   -d '{"query":"{ _meta { block { number } } strategies { id strategyKey docked } }"}'
 ```
 
-## Path B — Graph Studio (public testnet only)
+`deploy-local` also writes `SUBGRAPH_URL` into `services/solver-api/.env`, `services/resolver-bot/.env`, and `deployments/31337.json`.
 
-Requires deploying contracts to a [supported network](https://thegraph.com/docs/en/supported-networks/) (e.g. Sepolia), updating `subgraph.yaml` network + addresses, and setting `GRAPH_DEPLOY_KEY` in `subgraph/.env`.
+### Graph Studio (public networks)
+
+Needs `GRAPH_DEPLOY_KEY` and `GRAPH_STUDIO_SLUG` in `subgraph/.env`, and a [supported network](https://thegraph.com/docs/en/supported-networks/).
 
 ```bash
-pnpm subgraph:deploy
+CHAIN_ID=84532 node tools/subgraph/sync-from-manifest.mjs
+CHAIN_ID=84532 GRAPH_VERSION_LABEL=v0.0.5 node tools/subgraph/deploy-studio.mjs
 ```
 
-## Environment
+`subgraph.yaml` and `src/helpers.ts` are committed in their **Anvil** form. `sync-from-manifest.mjs` patches network, start block and addresses from `deployments/<chainId>.json` at deploy time and restores the Anvil sources afterwards, so matchstick tests stay stable. Deploying to Studio without running the sync first would index the wrong chain.
 
-See `subgraph/.env` (created from `.env.example`):
+### Unit tests
 
-| Variable | Path A default |
-|----------|----------------|
+```bash
+cd subgraph && pnpm run codegen && pnpm run test    # matchstick, needs Docker
+```
+
+### Environment
+
+From `subgraph/.env` (copy `.env.example`):
+
+| Variable | Local default |
+|---|---|
 | `GRAPH_NODE_URL` | `http://localhost:8020` |
 | `GRAPH_IPFS_URL` | `http://localhost:5001` |
 | `GRAPH_SUBGRAPH_NAME` | `riptide/riptide-anvil` |
 | `GRAPH_QUERY_URL` / `SUBGRAPH_URL` | `http://localhost:8000/subgraphs/name/riptide/riptide-anvil` |
+| `GRAPH_DEPLOY_KEY` / `GRAPH_STUDIO_SLUG` | *(Studio only)* |
 
-After deploy, `SUBGRAPH_URL` is also written to:
+---
 
-- `services/solver-api/.env`
-- `services/resolver-bot/.env`
-- `deployments/31337.json` → `subgraphUrl`
+## 8. Known gaps
 
-## Matchstick tests
+**`Route.fills` is always empty.** The schema declares the reverse lookup, but `Fill.route` is never written — `SwapFilled`'s first field is named `routeId` in the ABI yet the swap router emits the **orderHash** there, and the router has no way to know the batch id. Routes and fills are both indexed and both shown; only the join between them is missing. Fixing it means threading the batch id through the swap path, which is size-constrained.
 
-```bash
-cd subgraph && pnpm run test   # requires Docker
-```
-
-## Consumers
-
-- `packages/solver-core` — `SubgraphDiscoveryProvider`
-- `services/solver-api` — `/readyz` subgraph health when `SUBGRAPH_URL` set
-- `services/resolver-bot` — active-strategy filter from subgraph
-
-See also [ENV.md](../ENV.md).
+**`sync-from-manifest.mjs` rewrites tracked files.** It is deploy-time tooling, not a build step. If a deploy is interrupted between patch and restore, `git checkout -- subgraph/subgraph.yaml subgraph/src/helpers.ts` returns them to the Anvil baseline.
