@@ -428,7 +428,7 @@ Deadline → Fee(pre) → XYCSwap → Salt → Fee(post) → AQUA.pull
 
 Note the fee collection is **best-effort by upstream design**: `_tryPullFee` swallows failures and emits `ProtocolFeeSkipped` rather than reverting, so a one-sided maker position stays tradable.
 
-### 3.5 The rebalance program (Mechanism 2) — 86 bytes
+### 3.5 The rebalance program (Mechanism 2) — 66 bytes
 
 Built by [`RiptideRebalanceModule._buildRebalanceProgram:197-218`](contracts/src/core/RiptideRebalanceModule.sol#L197-L218):
 
