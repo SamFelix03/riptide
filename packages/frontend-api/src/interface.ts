@@ -5,6 +5,7 @@ import type {
   EventFeedItem,
   Freshness,
   RestoreDemoResult,
+  ResolverStanding,
   RouteView,
   RedeploySubgraphResult,
   OpenDemoAuctionsResult,
@@ -34,7 +35,6 @@ export interface RiptideFrontendApi {
     maker: `0x${string}`,
     strategy: Strategy | `0x${string}`,
     outWad: string,
-    resolver?: `0x${string}`,
   ): Promise<RebalancePreview>;
   buildSettleRebalance(
     maker: `0x${string}`,
@@ -59,5 +59,7 @@ export interface RiptideFrontendApi {
   streamEvents(filter: EventFeedFilter): Promise<EventFeedItem[]>;
   /** Atomic multi-fill taker settlements through RiptideBatchExecutor. */
   listRoutes(limit?: number): Promise<RouteView[]>;
+  /** Who has been settling rebalance auctions, and what each wallet earned. */
+  listResolvers(limit?: number): Promise<ResolverStanding[]>;
   getFreshness(): Promise<Freshness>;
 }

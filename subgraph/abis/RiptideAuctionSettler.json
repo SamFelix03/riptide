@@ -3,22 +3,12 @@
     "type": "constructor",
     "inputs": [
       {
-        "name": "oracle_",
-        "type": "address",
-        "internalType": "contract IRiptideVolatilityOracle"
-      },
-      {
-        "name": "router_",
+        "name": "rebalanceRouter",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "rebalanceRouter_",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "owner_",
+        "name": "kernel",
         "type": "address",
         "internalType": "address"
       }
@@ -27,13 +17,13 @@
   },
   {
     "type": "function",
-    "name": "ORACLE",
+    "name": "KERNEL",
     "inputs": [],
     "outputs": [
       {
         "name": "",
         "type": "address",
-        "internalType": "contract IRiptideVolatilityOracle"
+        "internalType": "contract RiptideRebalanceKernel"
       }
     ],
     "stateMutability": "view"
@@ -46,221 +36,198 @@
       {
         "name": "",
         "type": "address",
-        "internalType": "address"
+        "internalType": "contract RiptideRebalanceRouter"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "ROUTER",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "advanceController",
+    "name": "settleRebalance",
     "inputs": [
       {
-        "name": "strategyKey",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "feeReported",
-        "type": "uint24",
-        "internalType": "uint24"
-      },
-      {
-        "name": "feeTarget_",
-        "type": "uint24",
-        "internalType": "uint24"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "controllerState",
-    "inputs": [
-      {
-        "name": "strategyKey",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "feeReported",
-        "type": "uint24",
-        "internalType": "uint24"
-      },
-      {
-        "name": "integral",
-        "type": "int192",
-        "internalType": "int192"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "feeTarget",
-    "inputs": [
-      {
-        "name": "strategyKey",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint24",
-        "internalType": "uint24"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getFeeBpsAndRecipient",
-    "inputs": [
-      {
-        "name": "orderHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "",
+        "name": "maker",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "feeBps",
-        "type": "uint32",
-        "internalType": "uint32"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "owner",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "registerStrategy",
-    "inputs": [
-      {
-        "name": "strategyKey",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "orderHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "fee",
+        "name": "s",
         "type": "tuple",
-        "internalType": "struct RiptideTypes.FeePolicy",
+        "internalType": "struct RiptideTypes.Strategy",
         "components": [
           {
-            "name": "feeMin",
-            "type": "uint24",
-            "internalType": "uint24"
+            "name": "maker",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            "name": "feeMax",
-            "type": "uint24",
-            "internalType": "uint24"
+            "name": "baseToken",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            "name": "lambda",
-            "type": "uint64",
-            "internalType": "uint64"
+            "name": "quoteToken",
+            "type": "address",
+            "internalType": "address"
           },
           {
-            "name": "kp",
-            "type": "uint64",
-            "internalType": "uint64"
+            "name": "reserveBaseWad",
+            "type": "uint128",
+            "internalType": "uint128"
           },
           {
-            "name": "ki",
-            "type": "uint64",
-            "internalType": "uint64"
+            "name": "reserveQuoteWad",
+            "type": "uint128",
+            "internalType": "uint128"
           },
           {
-            "name": "iMax",
-            "type": "uint64",
-            "internalType": "uint64"
+            "name": "fee",
+            "type": "tuple",
+            "internalType": "struct RiptideTypes.FeePolicy",
+            "components": [
+              {
+                "name": "feeMin",
+                "type": "uint24",
+                "internalType": "uint24"
+              },
+              {
+                "name": "feeMax",
+                "type": "uint24",
+                "internalType": "uint24"
+              },
+              {
+                "name": "lambda",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "kp",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "ki",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "iMax",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "sigmaMin",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "sigmaMax",
+                "type": "uint64",
+                "internalType": "uint64"
+              }
+            ]
           },
           {
-            "name": "sigmaMin",
-            "type": "uint64",
-            "internalType": "uint64"
+            "name": "auction",
+            "type": "tuple",
+            "internalType": "struct RiptideTypes.AuctionPolicy",
+            "components": [
+              {
+                "name": "beta",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "duration",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "decay",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "antiSandwichPeriod",
+                "type": "uint16",
+                "internalType": "uint16"
+              }
+            ]
           },
           {
-            "name": "sigmaMax",
-            "type": "uint64",
-            "internalType": "uint64"
+            "name": "oracle",
+            "type": "tuple",
+            "internalType": "struct RiptideTypes.OracleConfig",
+            "components": [
+              {
+                "name": "feed",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "decimals",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "maxStaleness",
+                "type": "uint16",
+                "internalType": "uint16"
+              }
+            ]
+          },
+          {
+            "name": "feeProvider",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "salt",
+            "type": "bytes32",
+            "internalType": "bytes32"
           }
         ]
       },
       {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
+        "name": "outWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxInWad",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "deadline",
+        "type": "uint40",
+        "internalType": "uint40"
       }
     ],
-    "outputs": [],
+    "outputs": [
+      {
+        "name": "result",
+        "type": "tuple",
+        "internalType": "struct RiptideTypes.RebalanceResult",
+        "components": [
+          {
+            "name": "surplusWad",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "payToResolver",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "retainToLP",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
@@ -643,15 +610,15 @@
   },
   {
     "type": "error",
-    "name": "RiptideFeeOutOfRange",
+    "name": "RiptideDeadlineExpired",
     "inputs": [
       {
-        "name": "feeBps",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "deadline",
+        "type": "uint40",
+        "internalType": "uint40"
       },
       {
-        "name": "surplusBps",
+        "name": "timestamp",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -659,36 +626,10 @@
   },
   {
     "type": "error",
-    "name": "RiptideInvalidFeeBounds",
+    "name": "RiptideRebalanceAuctionStartMissing",
     "inputs": [
       {
-        "name": "feeMin",
-        "type": "uint24",
-        "internalType": "uint24"
-      },
-      {
-        "name": "feeMax",
-        "type": "uint24",
-        "internalType": "uint24"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "RiptideMathDivisionByZero",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "RiptideMathOverflow",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "RiptideStrategyNotActive",
-    "inputs": [
-      {
-        "name": "strategyHash",
+        "name": "strategyKey",
         "type": "bytes32",
         "internalType": "bytes32"
       }
@@ -696,12 +637,17 @@
   },
   {
     "type": "error",
-    "name": "RiptideUnauthorizedResolver",
+    "name": "RiptideSlippageExceeded",
     "inputs": [
       {
-        "name": "caller",
-        "type": "address",
-        "internalType": "address"
+        "name": "actual",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ]
   },
@@ -709,5 +655,53 @@
     "type": "error",
     "name": "RiptideZeroAddress",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SafeCastOverflowedUintDowncast",
+    "inputs": [
+      {
+        "name": "bits",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SafeERC20FailedOperation",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TakerTraitsMissingHasPreTransferInFlag",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TakerTraitsMissingHasPreTransferOutFlag",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TakerTraitsThresholdLengthInvalid",
+    "inputs": [
+      {
+        "name": "threshold",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ]
   }
 ]

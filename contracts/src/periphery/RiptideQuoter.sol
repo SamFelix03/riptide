@@ -66,7 +66,7 @@ contract RiptideQuoter is IRiptideQuoter {
     }
 
     /// @inheritdoc IRiptideQuoter
-    function previewRebalance(RiptideTypes.Strategy calldata s, uint256 outWad, address resolver)
+    function previewRebalance(RiptideTypes.Strategy calldata s, uint256 outWad)
         external
         view
         returns (RiptideTypes.RebalanceResult memory result, uint128 auctionPriceNowWad)
@@ -78,7 +78,7 @@ contract RiptideQuoter is IRiptideQuoter {
         }
 
         ISwapVM.Order memory order = REBALANCE_ROUTER.buildRebalanceOrderWithAuctionStart(
-            s.maker, s, RiptideConstants.SWAP_ORDER_DEADLINE, outWad, resolver, true, auctionStart
+            s.maker, s, RiptideConstants.SWAP_ORDER_DEADLINE, outWad, true, auctionStart
         );
 
         bytes memory takerData = _quoteTakerData(false);

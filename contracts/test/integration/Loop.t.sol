@@ -20,7 +20,7 @@ contract LoopTest is RiptideForkBase {
 
         strategy.feeProvider = address(provider);
         ISwapVM.Order memory rebOrder =
-            rebalanceRouter.buildRebalanceOrder(maker, strategy, uint40(block.timestamp + 1 hours), 1e18, resolver, true);
+            rebalanceRouter.buildRebalanceOrder(maker, strategy, uint40(block.timestamp + 1 hours), 1e18, true);
         bytes32 rebHash = rebalanceRouter.hash(rebOrder);
 
         tokenQuote.mint(maker, 5_000_000e18);

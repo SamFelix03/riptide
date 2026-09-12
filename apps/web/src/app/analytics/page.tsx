@@ -8,7 +8,7 @@ import { ChartPanel } from "@/components/shared/ChartPanel";
 import { PageShell } from "@/components/shared/PageShell";
 import { Counter } from "@/components/shared/primitives";
 import { TxLink } from "@/components/shared/States";
-import { formatWad, wadToNumber } from "@/lib/format";
+import { formatAddress, formatWad, wadToNumber } from "@/lib/format";
 import { useFrontendApi } from "@/providers/FrontendApiProvider";
 import { useWallet } from "@/providers/WalletProvider";
 
@@ -19,6 +19,7 @@ export default function AnalyticsPage() {
   const events = useQuery({ queryKey: ["events"], queryFn: () => api.streamEvents({ limit: 50 }) });
   const freshness = useQuery({ queryKey: ["freshness"], queryFn: () => api.getFreshness() });
   const routes = useQuery({ queryKey: ["routes"], queryFn: () => api.listRoutes(20) });
+  const resolvers = useQuery({ queryKey: ["resolvers"], queryFn: () => api.listResolvers(25) });
 
   const fills = useMemo(() =>
     events.data?.filter((e): e is Extract<typeof e, { type: "SwapFilled" }> => e.type === "SwapFilled") ?? [],
@@ -167,6 +168,33 @@ export default function AnalyticsPage() {
           ) : (
             <p className="muted">
               No atomic routes indexed yet. Execute a swap on the Swap Terminal to create one.
+            </p>
+          )}
+        </Card>
+
+        <Card title="Resolver standings" testId="resolver-standings">
+          <p className="muted" style={{ marginTop: 0 }}>
+            Who has been settling rebalance auctions. Attribution comes from
+            <code> RiptideAuctionSettler.AuctionSettled</code>, which names the wallet that
+            funded the settle — the router&apos;s own event names the VM taker, which on this
+            path is the settler contract.
+          </p>
+          {resolvers.data?.length ? (
+            <DataTable
+              headers={["Resolver", "Settles", "Earned (1−β)", "Left with LPs", "Quote paid", "Base bought"]}
+              rows={resolvers.data.map((r) => [
+                formatAddress(r.address),
+                String(r.settlementCount),
+                formatWad(r.paidToResolverWad),
+                formatWad(r.retainedForLPsWad),
+                formatWad(r.amountInWad),
+                formatWad(r.outWad),
+              ])}
+            />
+          ) : (
+            <p className="muted">
+              No settlements indexed yet. Settle an auction on the Resolver page — any wallet
+              can, and it will show up here under its own address.
             </p>
           )}
         </Card>

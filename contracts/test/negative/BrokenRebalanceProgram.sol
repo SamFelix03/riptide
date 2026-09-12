@@ -16,12 +16,11 @@ library BrokenRebalanceProgram {
         RiptideTypes.Strategy memory s,
         uint40 deadline,
         uint256 staleInWad,
-        address resolver,
         bool useAuctionBalanceIn
     ) internal view returns (bytes memory program) {
         uint40 start = uint40(block.timestamp);
         bytes memory auctionArgs = DutchAuctionArgsBuilder.build(start, s.auction.duration, s.auction.decay);
-        bytes memory rebalanceArgs = abi.encodePacked(s.auction.beta, uint128(staleInWad), resolver);
+        bytes memory rebalanceArgs = abi.encodePacked(s.auction.beta, uint128(staleInWad));
 
         program = bytes.concat(
             useAuctionBalanceIn

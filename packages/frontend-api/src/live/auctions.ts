@@ -5,7 +5,6 @@ import { evaluate } from "@riptide/resolver-core";
 import {
   assertChainSeeded,
   buildStrategyPreset,
-  demoResolverAddress,
   isAuctionWindowClosedError,
   isInactiveAquaStrategyError,
   isNoSurplusError,
@@ -103,7 +102,7 @@ export async function scanOpenAuctions(
 
     let preview;
     try {
-      [preview] = await quoter.read.previewRebalance([strategyForQuote, outWad, demoResolverAddress(manifest)]);
+      [preview] = await quoter.read.previewRebalance([strategyForQuote, outWad]);
     } catch (err) {
       if (isNoSurplusError(err)) continue;
       if (isInactiveAquaStrategyError(err)) continue;

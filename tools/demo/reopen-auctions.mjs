@@ -111,8 +111,6 @@ async function send(wallet, req, label) {
   console.log(`  ok ${label}`);
 }
 
-const resolver = manifest.demoResolver;
-
 for (const seeded of manifest.seededStrategies) {
   const { id, maker, salt, strategyKey } = seeded;
   const start = Number((await publicClient.getBlock()).timestamp);
@@ -129,7 +127,7 @@ for (const seeded of manifest.seededStrategies) {
   const rebOrder = await publicClient.readContract({
     address: manifest.rebalanceRouter, abi: rebalanceAbi,
     functionName: "buildRebalanceOrderWithAuctionStart",
-    args: [maker, tuple, SWAP_DEADLINE, SEED_OUT_WAD, resolver, true, start],
+    args: [maker, tuple, SWAP_DEADLINE, SEED_OUT_WAD, true, start],
   });
   const rebHash = await publicClient.readContract({
     address: manifest.rebalanceRouter, abi: rebalanceAbi, functionName: "hash", args: [rebOrder],

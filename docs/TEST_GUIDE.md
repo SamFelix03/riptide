@@ -233,9 +233,9 @@ Connect a wallet on Base Sepolia, then mint demo tokens from the faucet in the S
 |---|---|
 | `/make` | Configure a strategy, watch the fee-vs-σ curve and β split update, inspect the raw 226-byte payload and its hash parity, then ship |
 | `/swap` | Quote exact-in and exact-out, see the applied fee **and the σ that produced it**, check the route split across makers, simulate, execute |
-| `/resolve` | See open auctions with their live declining price, preview `S` and your `(1−β)` take, settle |
+| `/resolve` | See open auctions with their live declining price, preview `S` and your `(1−β)` take, settle. **Settle from any wallet** — mint RQUOTE from the faucet there and the plan walks you through approve → settle; the rebate and the bought base both land in the wallet that sends it |
 | `/positions` | Live Aqua reserves, controller telemetry, fill history, dock |
-| `/analytics` | Recaptured vs paid, fee vs estimated LVR, the loop, atomic routes, honesty panel |
+| `/analytics` | Recaptured vs paid, fee vs estimated LVR, the loop, atomic routes, **resolver standings** (per-wallet, from the settler's own event), honesty panel |
 
 UI tests:
 
@@ -243,6 +243,24 @@ UI tests:
 pnpm --filter @riptide/web test        # component tests (mocked API)
 pnpm --filter @riptide/web test:e2e    # Playwright
 ```
+
+### 6.1 Driving the whole app from a script
+
+If you would rather see every persona exercised without clicking through it,
+[`tools/demo/e2e-live.mjs`](../tools/demo/e2e-live.mjs) does exactly what the UI does — it
+calls the same `/api/riptide` endpoints the browser calls — from two wallets it generates at
+the start of the run:
+
+```bash
+APP=https://riptide-web-production-77f7.up.railway.app node tools/demo/e2e-live.mjs
+```
+
+It ships a strategy, swaps exact-in and exact-out, skews the demo feed, previews and settles
+an auction, docks, then reads back the analytics — asserting each result against on-chain
+state or the indexed data, and writing a transaction ledger to
+[`E2E_RUN.md`](E2E_RUN.md). It needs `DEPLOYER_PRIVATE_KEY` (or `DEPLOYER_KEY_FILE`) for
+about 0.01 ETH of gas to fund those wallets and for the one owner-only call, moving the mock
+Chainlink feed. Everything else in the run is permissionless.
 
 ---
 
@@ -304,8 +322,8 @@ node tools/audit/hardcoded-addresses.mjs                      # no hardcoded add
 |---|---|
 | `EvmError: ContractSizeLimit` on deploy | Anvil started without `--code-size-limit 100000`. Stock Aqua test contracts need it. |
 | `ChainNotSeededError` from a service | Run `pnpm demo:reset` first. |
-| `SafeBalancesForTokenNotInActiveStrategy` | The rebuilt order hash does not match what was shipped. Usually a changed deadline, `auctionStart`, or **resolver address** — all three are baked into the order bytes. |
-| `RiptideStrategyNotActive` on `previewRebalance` | Same cause: you passed a different resolver than the one the order was shipped with. |
+| `SafeBalancesForTokenNotInActiveStrategy` | The rebuilt order hash does not match what was shipped. Usually a changed deadline or `auctionStart` — both are baked into the order bytes. (The resolver is *not*: the rebate follows the VM taker, so anyone can settle.) |
+| `RiptideStrategyNotActive` on `previewRebalance` | Same cause: the strategy tuple you passed does not rebuild the shipped order — check `salt`, the reserves and the `feeProvider` address. |
 | `RiptideNoSurplus` | Working as intended — the auction has no surplus yet. Skew the feed, or wait for the Dutch price to decay. |
 | `ECONNREFUSED :8000` in service tests | No local Graph Node. Either `pnpm subgraph:up`, or ignore — RPC fallback covers the app. |
 | `over rate limit` against Base Sepolia | The public RPC throttles the read-heavy route path. Retry, or set `RPC_URL` to a dedicated endpoint. |
@@ -333,4 +351,6 @@ Standard Foundry test keys — public, never used anywhere else.
 | [`LVR_MATH.md`](LVR_MATH.md) | Every normative equation, unit and rounding rule |
 | [`SWAPVM_INTEGRATION.md`](SWAPVM_INTEGRATION.md) | How the maths becomes SwapVM bytecode over Aqua |
 | [`DIFF_ORACLE.md`](DIFF_ORACLE.md) | The Python oracle and the committed vectors |
+| [`../subgraph/README.md`](../subgraph/README.md) | The indexer: every entity, the Graph features used, the two-identifier bridge and the settlement join |
+| [`E2E_RUN.md`](E2E_RUN.md) | The transaction ledger from the most recent full run against the live app |
 | [`../RESOLUTIONS.md`](../RESOLUTIONS.md) | What was decided at build time — authoritative where specs disagree |

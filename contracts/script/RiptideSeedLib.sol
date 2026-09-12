@@ -135,14 +135,14 @@ library RiptideSeedLib {
         amounts[1] = 200_000e18;
         aqua.ship(address(swapRouter), abi.encode(order), tokens, amounts);
 
-        // Demo UI resolver role — order hash must match settler msg.sender.
+        // Any address can settle now: the rebate goes to whoever calls the settler, so
+        // the resolver is no longer part of the order hash.
         address demoResolver = VM.addr(ScriptConfig.takerPrivateKey());
         ISwapVM.Order memory rebOrder = rebalanceRouter.buildRebalanceOrderWithAuctionStart(
             maker,
             s,
             RiptideConstants.SWAP_ORDER_DEADLINE,
             RiptideConstants.SEED_REBALANCE_OUT_WAD,
-            demoResolver,
             true,
             uint40(block.timestamp)
         );

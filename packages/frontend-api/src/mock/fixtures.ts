@@ -27,9 +27,9 @@ const FIXTURE_MANIFEST = {
     quote: getAddress("0xb7f8bc63bbcad18155201308c8f3540b07f84f5e"),
   },
   seededStrategies: [
-    { id: "S1", maker: getAddress("0x70997970c51812dc3a010c7d01b50e0d17dc79c8"), strategyKey: "0x3c8e904cdb19937d60d41c8d984b1a8803ad6e0891b4f9e032dcec2a22c2c7f5" },
-    { id: "S2", maker: getAddress("0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"), strategyKey: "0xbd19ff506d92b45639170e62f1a12073921a4358c3ccd05d4584519f78d65103" },
-    { id: "S3", maker: getAddress("0x90f79bf6eb2c4f870365e785982e1f101e93b906"), strategyKey: "0x53c8a5ff8e9eee17be03169c30dedc5882673fcdd4fbdb8a32244385ed269978" },
+    { id: "S1", maker: getAddress("0x70997970c51812dc3a010c7d01b50e0d17dc79c8"), strategyKey: "0x3c8e904cdb19937d60d41c8d984b1a8803ad6e0891b4f9e032dcec2a22c2c7f5", orderHash: "0xe1325d86a3f47de37dfce1a7c496a69c8d0938404625c04376ea215ae15fca2d" },
+    { id: "S2", maker: getAddress("0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"), strategyKey: "0xbd19ff506d92b45639170e62f1a12073921a4358c3ccd05d4584519f78d65103", orderHash: "0xf54f27173f99038e7eea1b3438f94e610c0223b03c8c506d484840ed1923e98f" },
+    { id: "S3", maker: getAddress("0x90f79bf6eb2c4f870365e785982e1f101e93b906"), strategyKey: "0x53c8a5ff8e9eee17be03169c30dedc5882673fcdd4fbdb8a32244385ed269978", orderHash: "0x1652c1f0dba38a6cad211db2ab65ba15aaef7bffffb609bb6e9e6daea35b6217" },
   ],
 };
 
@@ -63,6 +63,7 @@ function strategyView(seeded: (typeof manifest.seededStrategies)[number], idx: n
     id: seeded.id,
     strategyKey: seeded.strategyKey as `0x${string}`,
     strategyHash: seeded.strategyKey as `0x${string}`,
+    orderHash: seeded.orderHash as `0x${string}`,
     maker: seeded.maker as `0x${string}`,
     market: FIXTURE_MARKET.id,
     reserveBaseWad: reserves.base.toString(),
@@ -135,6 +136,7 @@ export const FIXTURE_EVENTS: EventFeedItem[] = [
     surplusWad: "500000000000000000",
     payToResolver: "15000000000000000",
     retainToLP: "485000000000000000",
+    settledBy: "0x0000000000000000000000000000000000000009",
     blockNumber: FIXED_BLOCK,
     timestamp: String(FIXED_TS),
     txHash: "0xdef",

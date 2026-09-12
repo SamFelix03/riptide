@@ -51,6 +51,23 @@ interface IRiptideEvents {
         uint64 versionAfter
     );
 
+    /// @notice One settlement through `RiptideAuctionSettler`, from the caller's point of view.
+    /// @dev    The router's `RebalanceSettled` names the VM taker, which on this path is the
+    ///         settler contract - correct, but it hides which address actually funded the
+    ///         settlement and received the rebate. This is that receipt: `settledBy` is the
+    ///         `msg.sender` that paid `amountInWad` of quote and received `outWad` of base
+    ///         plus `payToResolverWad`.
+    event AuctionSettled(
+        bytes32 indexed strategyKey,
+        address indexed settledBy,
+        address indexed maker,
+        uint256 outWad,
+        uint256 amountInWad,
+        uint256 surplusWad,
+        uint256 payToResolverWad,
+        uint256 retainToLPWad
+    );
+
     /// @notice Fee controller advanced (Mechanism 1 telemetry).
     event FeeControllerUpdated(
         bytes32 indexed strategyKey, uint128 sigmaWad, uint24 feeTarget, uint24 feeReported

@@ -381,7 +381,7 @@ async function waitUntilDocked(maker, orderHash) {
   throw new Error(`S1 still active on Aqua after dock (tokensCount=${await aquaTokensCount(maker, orderHash)})`);
 }
 
-async function shipFull(makerKey, id, salt, resolver) {
+async function shipFull(makerKey, id, salt) {
   const maker = privateKeyToAccount(makerKey).address;
   const w = walletFor(makerKey);
   const strategy = preset(id, maker, manifest.demoTokens.base, manifest.demoTokens.quote, manifest.chainlinkFeed, manifest.feeProvider, salt);
@@ -434,7 +434,7 @@ async function shipFull(makerKey, id, salt, resolver) {
     address: manifest.rebalanceRouter,
     abi: rebalanceAbi,
     functionName: "buildRebalanceOrderWithAuctionStart",
-    args: [maker, tuple, SWAP_DEADLINE, SEED_REBALANCE_OUT_WAD, resolver, true, auctionStart],
+    args: [maker, tuple, SWAP_DEADLINE, SEED_REBALANCE_OUT_WAD, true, auctionStart],
   });
   const rebHash = await publicClient.readContract({
     address: manifest.rebalanceRouter,
@@ -554,7 +554,7 @@ async function main() {
   const salts = [101, 102, 103];
   const ids = ["S1", "S2", "S3"];
   for (let i = 0; i < 3; i++) {
-    shipped.push(await shipFull(makers[i].privateKey, ids[i], padSalt(salts[i]), taker.address));
+    shipped.push(await shipFull(makers[i].privateKey, ids[i], padSalt(salts[i])));
   }
   pass("ship+register S1/S2/S3 (swap Aqua + rebalance Aqua + both routers)");
 
@@ -777,7 +777,7 @@ async function main() {
   }
   pass("dock S1 — strategy inactive on Aqua");
 
-  const restored = await shipFull(makers[0].privateKey, "S1", padSalt(101n + 256n), taker.address);
+  const restored = await shipFull(makers[0].privateKey, "S1", padSalt(101n + 256n));
   const [restoredIn, restoredOut] = await quoteSwap(restored.strategy, 0, SWAP_AMOUNT);
   if (restoredOut === 0n) throw new Error("restored S1 quoted 0");
   pass("republish S1 with new salt", `quote out=${restoredOut} in=${restoredIn ?? restoredIn}`);

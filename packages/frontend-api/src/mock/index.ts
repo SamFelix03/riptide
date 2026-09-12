@@ -108,7 +108,6 @@ export class MockFrontendApi implements RiptideFrontendApi {
     _maker: `0x${string}`,
     _strategy: Strategy | `0x${string}`,
     _outWad: string,
-    _resolver?: `0x${string}`,
   ) {
     return {
       surplusWad: "1000000000000000000",
@@ -187,6 +186,21 @@ export class MockFrontendApi implements RiptideFrontendApi {
         amountOut: "498000000000000",
         limit: "497000000000000",
         fillCount: 3,
+      },
+    ];
+  }
+
+  async listResolvers(_limit = 25) {
+    return [
+      {
+        address: "0x0000000000000000000000000000000000000009",
+        settlementCount: 3,
+        paidToResolverWad: "90000000000000000",
+        retainedForLPsWad: "2910000000000000000",
+        amountInWad: "6000000000000000000000",
+        outWad: "3000000000000000000",
+        firstSeenTimestamp: "1700000000",
+        lastSeenTimestamp: "1700003600",
       },
     ];
   }

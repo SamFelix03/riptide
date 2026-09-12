@@ -71,6 +71,7 @@ function patchSubgraphYaml() {
     [/name: RiptideLvrFeeProvider[\s\S]*?address: "0x[a-fA-F0-9]{40}"/, `name: RiptideLvrFeeProvider\n    network: ${network}\n    source:\n      address: "${addresses.feeProvider}"`],
     [/name: RiptideBatchExecutor[\s\S]*?address: "0x[a-fA-F0-9]{40}"/, `name: RiptideBatchExecutor\n    network: ${network}\n    source:\n      address: "${addresses.batchExecutor}"`],
     [/name: RiptideRebalanceRouter[\s\S]*?address: "0x[a-fA-F0-9]{40}"/, `name: RiptideRebalanceRouter\n    network: ${network}\n    source:\n      address: "${addresses.rebalanceRouter}"`],
+    [/name: RiptideAuctionSettler[\s\S]*?address: "0x[a-fA-F0-9]{40}"/, `name: RiptideAuctionSettler\n    network: ${network}\n    source:\n      address: "${addresses.settler}"`],
   ];
 
   for (const [pattern, replacement] of replacements) {

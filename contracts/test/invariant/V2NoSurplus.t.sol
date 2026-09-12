@@ -20,7 +20,7 @@ contract V2NoSurplusTest is RiptideForkBase {
         RiptideTypes.Strategy memory s = strategy;
         bytes memory data = bytes.concat(
             RiptideStrategyCodec.encode(s),
-            BrokenRebalanceProgram.build(s, uint40(block.timestamp + 1 hours), staleInWad, resolver, true)
+            BrokenRebalanceProgram.build(s, uint40(block.timestamp + 1 hours), staleInWad, true)
         );
         order = RiptideMakerTraits.buildOrder(maker, data);
         orderHash = rebalanceRouter.hash(order);

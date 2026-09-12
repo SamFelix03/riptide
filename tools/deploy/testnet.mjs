@@ -62,6 +62,7 @@ function copySubgraphAbis() {
     "RiptideRebalanceRouter",
     "RiptideLvrFeeProvider",
     "RiptideBatchExecutor",
+    "RiptideAuctionSettler",
   ];
   for (const name of names) {
     const src = path.join(root, "contracts/out", `${name}.sol`, `${name}.json`);
@@ -110,8 +111,16 @@ run("pnpm --filter @riptide/frontend-api exec node scripts/seed-testnet.mjs", {
 
 if (process.env.GRAPH_DEPLOY_KEY && process.env.GRAPH_STUDIO_SLUG) {
   try {
-    run("node tools/subgraph/sync-from-manifest.mjs", { env: { ...process.env, ...env, CHAIN_ID: String(CHAIN_ID) } });
-    run("node tools/subgraph/deploy-studio.mjs", { env: { ...process.env, ...env, CHAIN_ID: String(CHAIN_ID) } });
+    // subgraph/.env carries a DEPLOYMENT_MANIFEST for the local Anvil subgraph. Left in
+    // place it wins over the chain-derived path and the sync silently targets 31337.
+    const subgraphEnv = {
+      ...process.env,
+      ...env,
+      CHAIN_ID: String(CHAIN_ID),
+      DEPLOYMENT_MANIFEST: path.join(root, "deployments", `${CHAIN_ID}.json`),
+    };
+    run("node tools/subgraph/sync-from-manifest.mjs", { env: subgraphEnv });
+    run("node tools/subgraph/deploy-studio.mjs", { env: subgraphEnv });
   } catch {
     console.warn("Graph Studio deploy failed — quotes/swaps/analytics continue via RPC logs.");
   }

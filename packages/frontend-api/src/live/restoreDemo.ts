@@ -28,7 +28,6 @@ import {
 } from "@riptide/contracts";
 import {
   buildStrategyPreset,
-  demoResolverAddress,
   encodeOrderBytes,
   isInactiveAquaStrategyError,
   isStrategyNotActiveError,
@@ -316,7 +315,6 @@ async function restoreOneStrategy(
     strategyTuple,
     SWAP_ORDER_PROGRAM_DEADLINE,
     SEED_REBALANCE_OUT_WAD,
-    demoResolverAddress(manifest),
     true,
     Number(block.timestamp),
   ]);
@@ -454,7 +452,6 @@ async function refreshRebalanceAquaOrder(
     strategyTuple,
     SWAP_ORDER_PROGRAM_DEADLINE,
     SEED_REBALANCE_OUT_WAD,
-    demoResolverAddress(manifest),
     true,
     auctionStart,
   ]);

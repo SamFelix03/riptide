@@ -1,46 +1,47 @@
 {
   "chainId": 31337,
   "name": "anvil",
-  "blockNumber": 313,
+  "blockNumber": 0,
   "commit": "local",
-  "aqua": "0xc9952Fc93Fa9bE383ccB39008c786b9f94eAc95d",
-  "swapRouter": "0x8B190573374637f144AC8D37375d97fd84cBD3a0",
-  "rebalanceRouter": "0x9385556B571ab92bf6dC9a0DbD75429Dd4d56F91",
-  "kernel": "0xDde063eBe8E85D666AD99f731B4Dbf8C98F29708",
-  "oracle": "0xD5724171C2b7f0AA717a324626050BD05767e2C6",
-  "feeProvider": "0x70eE76691Bdd9696552AF8d4fd634b3cF79DD529",
-  "settler": "0x162700d1613DfEC978032A909DE02643bC55df1A",
-  "quoter": "0x67aD6EA566BA6B0fC52e97Bc25CE46120fdAc04c",
-  "lens": "0x114e375B6FCC6d6fCb68c7A1d407E652C54F25FB",
-  "batchExecutor": "0xcD0048A5628B37B8f743cC2FeA18817A29e97270",
+  "aqua": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "swapRouter": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+  "rebalanceRouter": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+  "kernel": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  "oracle": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  "feeProvider": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+  "settler": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+  "quoter": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+  "lens": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+  "batchExecutor": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
   "demoTokens": {
-    "base": "0x976C214741b4657bd99DFD38a5c0E3ac5C99D903",
-    "quote": "0x8bEe2037448F096900Fd9affc427d38aE6CC0350"
+    "base": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
+    "quote": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
   },
+  "chainlinkFeed": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+  "demoResolver": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
   "seededStrategies": [
     {
       "id": "S1",
       "maker": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-      "salt": "0x0000000000000000000000000000000000000000000000000000000000000301",
-      "strategyKey": "0x47f4b0601d809474d75d17cb77648ce9f0ba80ad1f89907648aafacb27d394d7",
-      "orderHash": "0xb8f2d37290f3e595b5b7bf40e88f5cc0c27eb08eca9bad57de34528728e53500"
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "strategyKey": "0x3c8e904cdb19937d60d41c8d984b1a8803ad6e0891b4f9e032dcec2a22c2c7f5",
+      "orderHash": "0xe1325d86a3f47de37dfce1a7c496a69c8d0938404625c04376ea215ae15fca2d"
     },
     {
       "id": "S2",
       "maker": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
       "salt": "0x0000000000000000000000000000000000000000000000000000000000000002",
       "strategyKey": "0xbd19ff506d92b45639170e62f1a12073921a4358c3ccd05d4584519f78d65103",
-      "orderHash": "0x03ef52584b404bb259440f9b805db51b44a5bebfa0081ff4416713db8d8ac17d"
+      "orderHash": "0xf54f27173f99038e7eea1b3438f94e610c0223b03c8c506d484840ed1923e98f"
     },
     {
       "id": "S3",
       "maker": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
       "salt": "0x0000000000000000000000000000000000000000000000000000000000000003",
       "strategyKey": "0x53c8a5ff8e9eee17be03169c30dedc5882673fcdd4fbdb8a32244385ed269978",
-      "orderHash": "0x70579062fdbc75e60fde18dc03500e939c1f81ae84d2963ed211be76a5253332"
+      "orderHash": "0x1652c1f0dba38a6cad211db2ab65ba15aaef7bffffb609bb6e9e6daea35b6217"
     }
   ],
-  "chainlinkFeed": "0x942ED2fa862887Dc698682cc6a86355324F0f01e",
   "subgraphUrl": "http://localhost:8000/subgraphs/name/riptide/riptide-anvil",
   "rpcUrl": "http://127.0.0.1:8545",
   "explorerUrl": ""

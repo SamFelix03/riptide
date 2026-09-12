@@ -13,10 +13,11 @@ import { RiptideRebalanceRouter } from "../core/RiptideRebalanceRouter.sol";
 import { RiptideRebalanceKernel } from "../core/RiptideRebalanceKernel.sol";
 import { RiptideConstants } from "../core/RiptideConstants.sol";
 import { RiptideStrategyCodec } from "../core/RiptideStrategyCodec.sol";
+import { IRiptideEvents } from "../interfaces/IRiptideEvents.sol";
 
 /// @title RiptideAuctionSettler
 /// @notice Permissionless rebalance settlement for resolvers (CONTRACTS.md §12).
-contract RiptideAuctionSettler {
+contract RiptideAuctionSettler is IRiptideEvents {
     using SafeERC20 for IERC20;
 
     RiptideRebalanceRouter public immutable REBALANCE_ROUTER;
@@ -42,7 +43,7 @@ contract RiptideAuctionSettler {
         if (auctionStart == 0) revert RiptideErrors.RiptideRebalanceAuctionStartMissing(strategyKey);
 
         ISwapVM.Order memory order = REBALANCE_ROUTER.buildRebalanceOrderWithAuctionStart(
-            maker, s, RiptideConstants.SWAP_ORDER_DEADLINE, outWad, msg.sender, true, auctionStart
+            maker, s, RiptideConstants.SWAP_ORDER_DEADLINE, outWad, true, auctionStart
         );
 
         uint256 staleInWad = KERNEL.staleBaselineIn(
@@ -82,12 +83,32 @@ contract RiptideAuctionSettler {
 
         if (amountIn > maxInWad) revert RiptideErrors.RiptideSlippageExceeded(amountIn, maxInWad);
 
+        // The VM sends the bought side to the taker, which is this contract, so both legs
+        // have to be swept back to the caller: the unspent quote (maxIn less the amount the
+        // auction actually charged, plus the beta rebate) and the outWad of base the
+        // resolver just paid for. Leaving the base here stranded it and made settling a
+        // guaranteed loss for whoever called.
         uint256 refund = IERC20(s.quoteToken).balanceOf(address(this));
         if (refund > 0) {
             IERC20(s.quoteToken).safeTransfer(msg.sender, refund);
         }
+        uint256 bought = IERC20(s.baseToken).balanceOf(address(this));
+        if (bought > 0) {
+            IERC20(s.baseToken).safeTransfer(msg.sender, bought);
+        }
         IERC20(s.quoteToken).forceApprove(address(REBALANCE_ROUTER), 0);
 
         result = KERNEL.splitSurplus(amountIn, staleInWad, s.auction.beta);
+
+        emit AuctionSettled(
+            strategyKey,
+            msg.sender,
+            maker,
+            outWad,
+            amountIn,
+            result.surplusWad,
+            result.payToResolver,
+            result.retainToLP
+        );
     }
 }

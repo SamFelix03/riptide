@@ -23,8 +23,10 @@ export function quoteSingle(
   kind: QuoteKind,
   amount: bigint,
 ): QuoteResult {
-  const reserveIn = candidate.reserveQuoteWad;
-  const reserveOut = candidate.reserveBaseWad;
+  // Live Aqua balances, not the frozen reserves in the order bytes - see poolReserves()
+  // in optimize.ts. XYCSwap prices off what the strategy actually holds.
+  const reserveIn = candidate.aquaQuote;
+  const reserveOut = candidate.aquaBase;
   const feeBps = BigInt(candidate.feeBps);
 
   if (kind === QuoteKind.ExactInput) {

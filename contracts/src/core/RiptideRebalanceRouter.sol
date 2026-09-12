@@ -131,11 +131,10 @@ contract RiptideRebalanceRouter is SwapVM, RiptideOpcodes, IRiptideEvents, IRipt
         RiptideTypes.Strategy calldata strategy,
         uint40 deadline,
         uint256 outWad,
-        address resolver,
         bool useAuctionBalanceIn
     ) external view returns (ISwapVM.Order memory order) {
         return MODULE.buildRebalanceOrder(
-            maker, strategy, deadline, outWad, resolver, useAuctionBalanceIn, uint40(block.timestamp)
+            maker, strategy, deadline, outWad, useAuctionBalanceIn, uint40(block.timestamp)
         );
     }
 
@@ -144,12 +143,11 @@ contract RiptideRebalanceRouter is SwapVM, RiptideOpcodes, IRiptideEvents, IRipt
         RiptideTypes.Strategy calldata strategy,
         uint40 deadline,
         uint256 outWad,
-        address resolver,
         bool useAuctionBalanceIn,
         uint40 auctionStart
     ) external view returns (ISwapVM.Order memory order) {
         return MODULE.buildRebalanceOrder(
-            maker, strategy, deadline, outWad, resolver, useAuctionBalanceIn, auctionStart
+            maker, strategy, deadline, outWad, useAuctionBalanceIn, auctionStart
         );
     }
 
@@ -163,6 +161,7 @@ contract RiptideRebalanceRouter is SwapVM, RiptideOpcodes, IRiptideEvents, IRipt
             ctx.swap.balanceIn,
             ctx.swap.balanceOut,
             ctx.vm.isStaticContext,
+            ctx.query.taker,
             args
         );
     }

@@ -22,7 +22,10 @@ export type Market = {
 export type StrategyView = {
   id: string;
   strategyKey: `0x${string}`;
+  /** Runtime key, `keccak256(abi.encode(maker, salt))`. Kept under this name for the UI. */
   strategyHash: `0x${string}`;
+  /** The Aqua strategy hash, `keccak256(abi.encode(order))` — what `ship`/`dock` address. */
+  orderHash: `0x${string}`;
   maker: `0x${string}`;
   market: MarketId;
   reserveBaseWad: string;
@@ -184,6 +187,8 @@ export type EventFeedItem =
       surplusWad: string;
       payToResolver: string;
       retainToLP: string;
+      /** Wallet that funded the settlement and kept the rebate. */
+      settledBy: string;
       blockNumber: string;
       timestamp: string;
       txHash: string;
@@ -212,4 +217,16 @@ export type RouteView = {
   amountOut: string;
   limit: string;
   fillCount: number;
+};
+
+/** Per-wallet settlement attribution, from `RiptideAuctionSettler.AuctionSettled`. */
+export type ResolverStanding = {
+  address: string;
+  settlementCount: number;
+  paidToResolverWad: string;
+  retainedForLPsWad: string;
+  amountInWad: string;
+  outWad: string;
+  firstSeenTimestamp: string;
+  lastSeenTimestamp: string;
 };

@@ -242,11 +242,6 @@ export const riptideQuoterAbi = [
         "name": "outWad",
         "type": "uint256",
         "internalType": "uint256"
-      },
-      {
-        "name": "resolver",
-        "type": "address",
-        "internalType": "address"
       }
     ],
     "outputs": [

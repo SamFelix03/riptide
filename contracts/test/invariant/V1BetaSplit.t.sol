@@ -18,7 +18,7 @@ contract V1BetaSplitTest is RiptideForkBase {
     function _shipRebalance() internal returns (ISwapVM.Order memory order) {
         strategy.feeProvider = address(provider);
         order =
-            rebalanceRouter.buildRebalanceOrder(maker, strategy, uint40(block.timestamp + 1 hours), 1e18, resolver, true);
+            rebalanceRouter.buildRebalanceOrder(maker, strategy, uint40(block.timestamp + 1 hours), 1e18, true);
         orderHash = rebalanceRouter.hash(order);
         strategyKey = RiptideStrategyCodec.runtimeStrategyKey(maker, strategy.salt);
 
@@ -36,21 +36,24 @@ contract V1BetaSplitTest is RiptideForkBase {
     function test_v1BetaSplitConservation() public {
         ISwapVM.Order memory order = _shipRebalance();
 
-        uint256 resolverBefore = tokenQuote.balanceOf(resolver);
+        // The rebate goes to whoever settles - here that is `taker`, who calls swap
+        // directly. Measuring their NET change proves both legs: they paid `amountIn`
+        // and were rebated `pay` in the same transaction.
         tokenQuote.mint(taker, 500_000e18);
+        uint256 settlerBefore = tokenQuote.balanceOf(taker);
         vm.startPrank(taker);
         tokenQuote.approve(address(rebalanceRouter), type(uint256).max);
         (uint256 amountIn,,) =
             rebalanceRouter.swap(order, address(tokenQuote), address(tokenBase), 1e18, _swapTakerData(false));
         vm.stopPrank();
 
-        uint256 resolverGain = tokenQuote.balanceOf(resolver) - resolverBefore;
+        uint256 settlerNetOut = settlerBefore - tokenQuote.balanceOf(taker);
         uint256 surplus = amountIn - kernel.staleBaselineIn(1e18, strategy.reserveBaseWad, strategy.reserveQuoteWad, RiptideTypes.QuoteKind.ExactOutput);
         (uint256 pay, uint256 retain) = _split(surplus, strategy.auction.beta);
 
         assertEq(pay + retain, surplus);
         assertGe(retain, WadMulDiv.mulDiv(strategy.auction.beta, surplus, WadMulDiv.WAD, WadMulDiv.Rounding.Down));
-        assertEq(resolverGain, pay);
+        assertEq(settlerNetOut, amountIn - pay, "settler paid amountIn and was rebated pay");
     }
 
     function test_v1_negativeControlMustFail() public pure {

@@ -62,16 +62,16 @@ contract RebalanceScript is Script {
             strategy = ScriptConfig.strategyS2(maker, demoBase, demoQuote, address(feed), feeProvider, salt);
         }
 
-        // The settler rebuilds the order with `msg.sender` as the resolver, so the
-        // resolver baked in here must be the account that will actually broadcast the
-        // settlement — otherwise the order hash differs and the lookup fails.
+        // Nothing about the resolver goes into the order: the rebate follows the VM taker,
+        // so any account can broadcast the settlement. This one is only used to fund and
+        // approve the wallet the script happens to settle from.
         address resolver = vm.addr(ScriptConfig.RESOLVER_KEY);
         bytes32 strategyKey = RiptideStrategyCodec.runtimeStrategyKey(maker, salt);
         // Pin the auction start: it is baked into the order bytes AND read from router
         // storage by the settler. The two must agree.
         uint40 auctionStart = uint40(block.timestamp);
         ISwapVM.Order memory rebOrder = rebalanceRouter.buildRebalanceOrderWithAuctionStart(
-            maker, strategy, RiptideConstants.SWAP_ORDER_DEADLINE, 1e18, resolver, true, auctionStart
+            maker, strategy, RiptideConstants.SWAP_ORDER_DEADLINE, 1e18, true, auctionStart
         );
         bytes32 rebHash = rebalanceRouter.hash(rebOrder);
 

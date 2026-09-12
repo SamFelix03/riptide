@@ -96,12 +96,16 @@ type Fill @entity(immutable: true) {
   txHash: Bytes!
 }
 
-type Rebalance @entity(immutable: true) {
+type Rebalance @entity(immutable: false) {
   id: ID!
   strategy: Strategy!
   market: Market!
   maker: Maker!
+  """The VM taker credited by the router - the settler contract on the settler path."""
   resolver: Bytes!
+  """The address that actually funded the settlement and kept the rebate. Equals
+  `resolver` when the rebalance was settled directly against the router."""
+  settledBy: Bytes!
   tokenIn: Bytes!
   tokenOut: Bytes!
   executedInWad: BigInt!
@@ -141,4 +145,23 @@ type MarketSnapshot @entity(immutable: false) {
   fillVolume: BigInt!
   recaptureVolume: BigInt!
   fillCount: BigInt!
+}
+
+"""Per-address resolver attribution, aggregated from `RiptideAuctionSettler.AuctionSettled`."""
+type Resolver @entity(immutable: false) {
+  id: ID!
+  settlementCount: BigInt!
+  paidToResolverWad: BigInt!
+  retainedForLPsWad: BigInt!
+  amountInWad: BigInt!
+  outWad: BigInt!
+  firstSeenTimestamp: BigInt!
+  lastSeenTimestamp: BigInt!
+}
+
+"""Internal join: lets the settler handler find the Rebalance the router wrote earlier in
+the same transaction. Keyed by `txHash-strategyKey`, so concurrent settles never collide."""
+type RebalanceTxIndex @entity(immutable: false) {
+  id: ID!
+  rebalance: String!
 }

@@ -1,7 +1,7 @@
 import { BigInt } from "@graphprotocol/graph-ts";
 
 import { RebalanceSettled } from "../../generated/RiptideRebalanceRouter/RiptideRebalanceRouter";
-import { MarketSnapshot, Rebalance, StrategyKeyIndex } from "../../generated/schema";
+import { MarketSnapshot, Rebalance, RebalanceTxIndex, StrategyKeyIndex } from "../../generated/schema";
 import { bucketStart, ensureMaker, ensureMarket, ensureProtocol } from "../helpers";
 
 export function handleRebalanceSettled(event: RebalanceSettled): void {
@@ -18,6 +18,11 @@ export function handleRebalanceSettled(event: RebalanceSettled): void {
   rebalance.market = event.params.marketId.toHexString();
   rebalance.maker = event.params.maker.toHexString();
   rebalance.resolver = event.params.resolver;
+  // Provisional: the router only knows the VM taker. If this settlement came through
+  // RiptideAuctionSettler its receipt fires later in the same transaction and overwrites
+  // this with the calling wallet. A direct router settle never does, and there the taker
+  // *is* the resolver, so the provisional value is already correct.
+  rebalance.settledBy = event.params.resolver;
   rebalance.tokenIn = event.params.tokenIn;
   rebalance.tokenOut = event.params.tokenOut;
   rebalance.executedInWad = event.params.executedInWad;
@@ -31,6 +36,15 @@ export function handleRebalanceSettled(event: RebalanceSettled): void {
   rebalance.timestamp = event.block.timestamp;
   rebalance.txHash = event.transaction.hash;
   rebalance.save();
+
+  const joinId = event.transaction.hash
+    .toHexString()
+    .concat("-")
+    .concat(event.params.strategyKey.toHexString());
+  let join = RebalanceTxIndex.load(joinId);
+  if (join == null) join = new RebalanceTxIndex(joinId);
+  join.rebalance = id;
+  join.save();
 
   protocol.totalRecapture = protocol.totalRecapture.plus(event.params.retainToLPWad);
   protocol.rebalanceCount = protocol.rebalanceCount.plus(BigInt.fromI32(1));

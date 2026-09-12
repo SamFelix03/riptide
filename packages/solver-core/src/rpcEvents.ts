@@ -39,6 +39,7 @@ export type RpcEventItem =
       surplusWad: string;
       payToResolver: string;
       retainToLP: string;
+      settledBy: string;
       blockNumber: string;
       timestamp: string;
       txHash: string;
@@ -127,6 +128,9 @@ export async function scanProtocolFromRpc(
       surplusWad: BigInt(log.args.surplusWad ?? 0n).toString(),
       payToResolver: paid.toString(),
       retainToLP: retain.toString(),
+      // Without the subgraph there is no settler receipt to join against, so the best
+      // the RPC fallback can report is the VM taker the router logged.
+      settledBy: String(log.args.resolver ?? ""),
       blockNumber: log.blockNumber.toString(),
       timestamp: "0",
       txHash: log.transactionHash,

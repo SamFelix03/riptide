@@ -24,7 +24,7 @@ The second thing it provides is the **proof surface**. RIPTIDE's whole claim is 
 
 ## 2. What is indexed
 
-`specVersion 1.0.0`, mapping `apiVersion 0.0.9`, AssemblyScript. Five datasources, nine handlers.
+`specVersion 1.0.0`, mapping `apiVersion 0.0.9`, AssemblyScript. Six datasources, ten handlers.
 
 | Datasource | Events → handlers |
 |---|---|
@@ -33,12 +33,13 @@ The second thing it provides is the **proof surface**. RIPTIDE's whole claim is 
 | **RiptideLvrFeeProvider** | `FeeControllerUpdated` |
 | **RiptideBatchExecutor** | `RouteExecuted` |
 | **RiptideRebalanceRouter** | `RebalanceSettled` |
+| **RiptideAuctionSettler** | `AuctionSettled` |
 
 Indexing 1inch's own Aqua contract alongside RIPTIDE's is the point: strategy **lifecycle** (shipped / docked) and **inventory** (pushed / pulled) are Aqua's events, not ours. All four Aqua handlers filter on the app address so only strategies shipped to the RIPTIDE router are indexed ([`src/mappings/aqua.ts`](src/mappings/aqua.ts)).
 
 ### Entities
 
-Eleven entities, split by whether they are a running total or a historical record.
+Thirteen entities, split by whether they are a running total or a historical record.
 
 | Entity | Kind | Holds |
 |---|---|---|
@@ -49,12 +50,14 @@ Eleven entities, split by whether they are a running total or a historical recor
 | `StrategyKeyIndex` | mutable | Secondary index — see §4 |
 | `Token` | mutable | Symbol, decimals |
 | `Fill` | **immutable** | One swap: amounts, `feeBpsApplied`, the σ that produced it, post-trade reserves, version |
-| `Rebalance` | **immutable** | One settlement: `executedIn`, `staleIn`, `surplus`, `retainToLP`, `payToResolver`, resolver, revealed price |
+| `Rebalance` | mutable | One settlement: `executedIn`, `staleIn`, `surplus`, `retainToLP`, `payToResolver`, revealed price, plus both `resolver` (VM taker) and `settledBy` (the wallet) — see §4 |
 | `ControllerState` | **immutable** | One controller step: σ, `feeTarget`, `feeReported` |
 | `Route` | **immutable** | One atomic multi-fill batch: payer, kind, totals, limit, fill count |
 | `MarketSnapshot` | mutable | Hourly buckets of volume and recapture |
+| `Resolver` | mutable | Per-wallet settlement attribution: count, earned `(1−β)·S`, LP retention it produced, quote paid, base bought |
+| `RebalanceTxIndex` | mutable | Internal join, `txHash-strategyKey` → rebalance id — see §4 |
 
-The immutable/mutable split is not cosmetic. `@entity(immutable: true)` lets Graph Node skip write-ahead bookkeeping for entities that are only ever appended — and every historical record here (fills, rebalances, controller steps, routes) genuinely is append-only. Aggregates that must be read-modify-written stay mutable.
+The immutable/mutable split is not cosmetic. `@entity(immutable: true)` lets Graph Node skip write-ahead bookkeeping for entities that are only ever appended — and every historical record here (fills, controller steps, routes) genuinely is append-only. Aggregates that must be read-modify-written stay mutable. `Rebalance` is the one history row that is not immutable: a second event in the same transaction corrects its attribution, which is the subject of §4.
 
 ---
 
@@ -62,19 +65,19 @@ The immutable/mutable split is not cosmetic. `@entity(immutable: true)` lets Gra
 
 | Feature | Where, and why |
 |---|---|
-| **Multi-datasource indexing** | Five contracts in one subgraph, including 1inch's Aqua. Cross-contract joins (a `Fill` on our router resolving to a `Strategy` created by an Aqua `Shipped`) are the whole reason this is one subgraph and not five. |
+| **Multi-datasource indexing** | Six contracts in one subgraph, including 1inch's Aqua. Cross-contract joins (a `Fill` on our router resolving to a `Strategy` created by an Aqua `Shipped`) are the whole reason this is one subgraph and not five. |
 | **`@entity(immutable: true)`** | `Fill`, `Rebalance`, `ControllerState`, `Route` — append-only history, cheaper to index. |
 | **`@derivedFrom`** | Reverse lookups without maintaining arrays by hand: `Market.strategies`, `Maker.strategies`, `Strategy.fills` / `.rebalances` / `.controllerStates`, `Route.fills`. |
 | **`_meta { block }`** | Freshness. Every UI view that reads indexed data shows the indexed block and labels itself stale if it lags — [§5](#5-freshness-is-a-first-class-value). |
 | **`where` filtering** | `strategies(where: { docked: false, market: $market })` — active-strategy discovery in one query. |
 | **`orderBy` / `orderDirection` / `first` / `skip`** | Recent-history feeds, and cursor-free pagination for the recapture sums ([`client.ts:249-283`](../packages/solver-core/src/subgraph/client.ts#L249-L283) pages at 1000 rows). |
 | **`Bytes` for raw calldata** | `Strategy.orderBytes` stores the full `abi.encode(ISwapVM.Order)` — see §4. |
-| **Matchstick unit tests** | [`tests/`](tests) — creation and replay-idempotency per datasource, plus a negative case (a `FeeControllerUpdated` with no index must create nothing). |
-| **Graph Studio** | Versioned deploys (`v0.0.1` … `v0.0.4`) with `version/latest` consumed by the app. |
+| **Matchstick unit tests** | [`tests/`](tests) — creation and replay-idempotency per datasource, a negative case (a `FeeControllerUpdated` with no index must create nothing), and the two-event settlement join in [`settler.test.ts`](tests/settler.test.ts). |
+| **Graph Studio** | Versioned deploys labelled `v0.0.1-<deploy block>`, with `version/latest` consumed by the app. |
 
 ---
 
-## 4. Two design details worth understanding
+## 4. Three design details worth understanding
 
 ### `Strategy.orderBytes` — the field that makes maker-shipped strategies tradeable
 
@@ -100,6 +103,28 @@ strategyKey  = keccak256(abi.encode(maker, salt)) the router's runtime key
 
 Aqua events carry the **hash**; router and fee-provider events carry the **key**. `Strategy` is stored by hash, so `StrategyKeyIndex` is a manual secondary index mapping key → strategy id, letting `handleSwapFilled`, `handleFeeControllerUpdated` and `handleRebalanceSettled` attribute their rows to the right strategy. The fee-provider handler deliberately **returns early** when the index is missing rather than inventing a dangling row.
 
+### `AuctionSettled` — recovering who actually settled
+
+The router logs `RebalanceSettled` from inside the swap, and the `resolver` it names is the
+VM taker. On the permissionless path — `RiptideAuctionSettler`, which is what the UI uses —
+that taker is the settler *contract*, because the settler is what fronts the quote, runs the
+order and sweeps both legs back to its caller. Taken at face value, every settlement in the
+protocol's history would be attributed to one address.
+
+So the settler emits its own receipt, [`AuctionSettled`](../contracts/src/interfaces/IRiptideEvents.sol),
+naming `msg.sender` along with what that wallet paid and received. Both events land in the
+same transaction, router first, settler second, and Graph Node delivers them in log order —
+so by the time [`settler.ts`](src/mappings/settler.ts) runs, the `Rebalance` row already
+exists. It is found through `RebalanceTxIndex`, a one-field join keyed by
+`txHash-strategyKey` that `handleRebalanceSettled` writes as it creates the row. The handler
+then rewrites `Rebalance.settledBy` and rolls the amounts into a per-wallet `Resolver`
+aggregate, which is what the resolver standings table on `/analytics` reads.
+
+Two consequences worth being explicit about. `Rebalance` cannot be `immutable`, because a
+later event in the same transaction corrects it. And `resolver` is kept alongside
+`settledBy` rather than overwritten — they are genuinely different facts, and a settlement
+sent straight to the router (no settler in the path) has them equal.
+
 ---
 
 ## 5. Freshness is a first-class value
@@ -115,7 +140,7 @@ This exists because a router built on a stale snapshot can quote liquidity that 
 | Consumer | Uses it for |
 |---|---|
 | [`solver-core/src/subgraph/discovery.ts`](../packages/solver-core/src/subgraph/discovery.ts) | Active-strategy discovery, then decodes `orderBytes` and prices each candidate through the on-chain Quoter |
-| [`solver-core/src/subgraph/client.ts`](../packages/solver-core/src/subgraph/client.ts) | All 10 typed queries |
+| [`solver-core/src/subgraph/client.ts`](../packages/solver-core/src/subgraph/client.ts) | All 11 typed queries |
 | [`frontend-api/src/live/index.ts`](../packages/frontend-api/src/live/index.ts) | `getRecaptureStats`, `streamEvents`, `listRoutes`, `getControllerState`, `getFreshness`, per-strategy cumulative recapture |
 | [`services/solver-api`](../services/solver-api) | Discovery behind `POST /v1/quote` and `/v1/route`; subgraph reachability in `/readyz` |
 | [`services/resolver-bot`](../services/resolver-bot) | Active-strategy pre-filter before scanning for mispricing |
@@ -192,11 +217,3 @@ From `subgraph/.env` (copy `.env.example`):
 | `GRAPH_SUBGRAPH_NAME` | `riptide/riptide-anvil` |
 | `GRAPH_QUERY_URL` / `SUBGRAPH_URL` | `http://localhost:8000/subgraphs/name/riptide/riptide-anvil` |
 | `GRAPH_DEPLOY_KEY` / `GRAPH_STUDIO_SLUG` | *(Studio only)* |
-
----
-
-## 8. Known gaps
-
-**`Route.fills` is always empty.** The schema declares the reverse lookup, but `Fill.route` is never written — `SwapFilled`'s first field is named `routeId` in the ABI yet the swap router emits the **orderHash** there, and the router has no way to know the batch id. Routes and fills are both indexed and both shown; only the join between them is missing. Fixing it means threading the batch id through the swap path, which is size-constrained.
-
-**`sync-from-manifest.mjs` rewrites tracked files.** It is deploy-time tooling, not a build step. If a deploy is interrupted between patch and restore, `git checkout -- subgraph/subgraph.yaml subgraph/src/helpers.ts` returns them to the Anvil baseline.

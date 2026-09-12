@@ -11,7 +11,7 @@ interface IRiptideQuoter {
         view
         returns (uint256 amountIn, uint256 amountOut, uint24 feeBpsApplied, uint128 sigmaWad);
 
-    function previewRebalance(RiptideTypes.Strategy calldata s, uint256 outWad, address resolver)
+    function previewRebalance(RiptideTypes.Strategy calldata s, uint256 outWad)
         external
         view
         returns (RiptideTypes.RebalanceResult memory result, uint128 auctionPriceNowWad);

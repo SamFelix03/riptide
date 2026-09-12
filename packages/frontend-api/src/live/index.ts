@@ -1,4 +1,4 @@
-import { createPublicClient, encodeAbiParameters, http, keccak256, toHex } from "viem";
+import { createPublicClient, encodeAbiParameters, encodeFunctionData, http, keccak256, toHex } from "viem";
 import { foundry } from "viem/chains";
 import type { Strategy } from "@riptide/strategy-sdk";
 import { marketId } from "@riptide/strategy-sdk";
@@ -8,6 +8,7 @@ import {
   ANVIL_CHAIN_ID,
   getRiptideLens,
   getRiptideLvrFeeProvider,
+  riptideDemoTokenAbi,
   getRiptideQuoter,
   getRiptideRebalanceRouter,
   getRiptideSwapVMRouter,
@@ -34,6 +35,7 @@ import {
   queryProtocolStats,
   queryRecentFills,
   queryRecentRebalances,
+  queryResolvers,
   queryRecentRoutes,
   queryRecaptureByMarket,
   queryStrategyCumulativeRecapture,
@@ -64,10 +66,11 @@ import {
 } from "./encode.js";
 import { restoreDemoStrategiesLive, openDemoAuctionsLive } from "./restoreDemo.js";
 import { redeployLocalSubgraph } from "./redeploySubgraph.js";
-import { throwIfRiptideError } from "../errors.js";
+import { RiptideFrontendApiError, throwIfRiptideError } from "../errors.js";
 import { normalizeStrategy } from "../json.js";
 
 const WAD = 1_000_000_000_000_000_000n;
+const MAX_UINT256 = 2n ** 256n - 1n;
 
 /** ExactOutput rebalance: max quote in = stale baseline + surplus, with on-chain slippage headroom. */
 function rebalanceMaxInWad(surplusWad: bigint, staleInWad: bigint): bigint {
@@ -158,6 +161,7 @@ export class LiveFrontendApi implements RiptideFrontendApi {
           id: c.id,
           strategyKey: c.strategyKey,
           strategyHash: c.strategyKey,
+          orderHash: c.orderHash,
           maker: c.strategy.maker,
           market,
           reserveBaseWad: c.reserveBaseWad.toString(),
@@ -178,6 +182,7 @@ export class LiveFrontendApi implements RiptideFrontendApi {
         id: seeded.id,
         strategyKey: seeded.strategyKey as `0x${string}`,
         strategyHash: seeded.strategyKey as `0x${string}`,
+        orderHash: seeded.orderHash as `0x${string}`,
         maker: seeded.maker as `0x${string}`,
         market,
         reserveBaseWad: strategy.reserveBaseWad.toString(),
@@ -337,6 +342,39 @@ export class LiveFrontendApi implements RiptideFrontendApi {
     };
   }
 
+  /**
+   * Contracts that pull tokens (the batch executor, the auction settler) need an ERC20
+   * allowance from whoever sends the transaction. A wallet that has never used this
+   * deployment has none, so the plan carries the approval as its first step and drops it
+   * again once the allowance is in place - otherwise every fresh wallet's first click
+   * reverts with ERC20InsufficientAllowance.
+   */
+  private async approvalStep(
+    token: `0x${string}`,
+    owner: `0x${string}` | undefined,
+    spender: `0x${string}`,
+    amount: bigint,
+  ): Promise<{ to: `0x${string}`; data: `0x${string}`; label: string } | null> {
+    if (owner) {
+      const current = (await this.client.readContract({
+        address: token,
+        abi: riptideDemoTokenAbi,
+        functionName: "allowance",
+        args: [owner, spender],
+      })) as bigint;
+      if (current >= amount) return null;
+    }
+    return {
+      to: token,
+      data: encodeFunctionData({
+        abi: riptideDemoTokenAbi,
+        functionName: "approve",
+        args: [spender, MAX_UINT256],
+      }),
+      label: "Approve quote token",
+    };
+  }
+
   async buildSwapRoute(market: MarketId, kind: QuoteKind, amount: string, limits: RouteLimits) {
     if (this.config.solverApiUrl) {
       try {
@@ -448,10 +486,28 @@ export class LiveFrontendApi implements RiptideFrontendApi {
     });
 
     const data = encodeExecuteCalldata(batchRoute);
+    // The executor pulls the input token from the payer, so a wallet that has never swapped
+    // here needs an allowance first. Carrying it in the plan means the stepper walks a fresh
+    // wallet through approve -> execute instead of reverting on the first click.
+    const quoteIn = qKind === SolverQuoteKind.ExactInput
+      ? route.totalAmountIn
+      : aggregateLimitForKind(qKind, { amountIn: route.totalAmountIn, amountOut: route.totalAmountOut });
+    const approve = await this.approvalStep(
+      manifest.demoTokens.quote as `0x${string}`,
+      limits.payer as `0x${string}` | undefined,
+      manifest.batchExecutor as `0x${string}`,
+      quoteIn,
+    );
+    const execStep = { to: manifest.batchExecutor as `0x${string}`, data, label: "Execute batch swap route" };
+    const steps = approve ? [{ ...approve, label: "Approve quote token for the batch executor" }, execStep] : [execStep];
     return {
-      to: manifest.batchExecutor as `0x${string}`,
-      data,
-      steps: [{ to: manifest.batchExecutor as `0x${string}`, data, label: "Execute batch swap route" }],
+      to: steps[0]!.to,
+      data: steps[0]!.data,
+      // The executor pulls from and pays to the payer, so an eth_call with no `from`
+      // simulates as address(0) and reverts on the authorisation check rather than on
+      // anything real. Carrying it here makes every consumer's simulation meaningful.
+      from: payer,
+      steps,
       sendable: true as const,
       description: `Swap route ${market} ${kind}`,
       fills: route.fills.map((f) => ({
@@ -483,7 +539,6 @@ export class LiveFrontendApi implements RiptideFrontendApi {
     maker: `0x${string}`,
     strategy: Strategy | `0x${string}`,
     outWad: string,
-    resolver?: `0x${string}`,
   ) {
     const strategyLive = await this.resolveStrategy(maker, strategy);
     const manifest = this.manifest();
@@ -491,13 +546,11 @@ export class LiveFrontendApi implements RiptideFrontendApi {
     const rebalanceRouter = getRiptideRebalanceRouter(this.client, manifest.rebalanceRouter);
     const strategyKey = runtimeStrategyKey(strategyLive.maker, strategyLive.salt);
     const auctionStart = Number(await rebalanceRouter.read.rebalanceAuctionStart([strategyKey]));
-    const quoteResolver = resolver ?? demoResolverAddress(manifest);
 
     try {
       const [preview, auctionPriceNowWad] = await quoter.read.previewRebalance([
         strategyToContractTuple(strategyLive),
         BigInt(outWad),
-        quoteResolver,
       ]);
       const block = await this.client.getBlock();
       const evaluation = evaluate({
@@ -578,13 +631,26 @@ export class LiveFrontendApi implements RiptideFrontendApi {
     const manifest = this.manifest();
     const maxInWad = maxIn ? BigInt(maxIn) : BigInt(strategyLive.reserveQuoteWad);
     const data = buildSettleCalldata(maker, strategyLive, BigInt(outWad), maxInWad, deadline);
+    // The settler pulls maxIn of the quote token from whoever sends the transaction and
+    // refunds the unspent part in the same call, so the plan has to carry the approval.
+    // Without it a first-time resolver hits ERC20InsufficientAllowance.
+    const approve = await this.approvalStep(
+      strategyLive.quoteToken,
+      resolver,
+      manifest.settler as `0x${string}`,
+      maxInWad,
+    );
+    const settleStep = { to: manifest.settler as `0x${string}`, data, label: "settleRebalance" };
+    const steps = approve ? [{ ...approve, label: "Approve quote token for the settler" }, settleStep] : [settleStep];
     return {
-      to: manifest.settler,
-      data,
+      to: steps[0]!.to,
+      data: steps[0]!.data,
       from: resolver,
-      steps: [{ to: manifest.settler, data, label: "settleRebalance" }],
+      steps,
       sendable: true,
-      description: "Settle rebalance auction",
+      description: approve
+        ? "Settle rebalance auction: approve quote + settleRebalance"
+        : "Settle rebalance auction",
     };
   }
 
@@ -609,7 +675,6 @@ export class LiveFrontendApi implements RiptideFrontendApi {
       strategyToContractTuple(s),
       SWAP_ORDER_PROGRAM_DEADLINE,
       WAD,
-      demoResolverAddress(manifest),
       true,
       auctionStart,
     ]);
@@ -623,16 +688,36 @@ export class LiveFrontendApi implements RiptideFrontendApi {
     });
   }
 
+  /**
+   * `strategyHash` here is what the UI lists, which is the runtime strategy *key*. Aqua
+   * addresses inventory by the order hash instead, so it has to be resolved first. The
+   * manifest only knows the seeded pools; anything a maker shipped themselves has to come
+   * from discovery, which recovers the order hash from the indexed order bytes. Falling
+   * back to treating the key as an order hash - as this used to - made `dock` revert with
+   * `DockingShouldCloseAllTokens` for every maker-shipped strategy.
+   */
   async buildDockStrategy(_maker: `0x${string}`, strategyHash: `0x${string}`) {
     const manifest = this.manifest();
     const seeded = manifest.seededStrategies.find((s) => s.strategyKey === strategyHash);
-    const orderHash = seeded
-      ? (seeded.orderHash as `0x${string}`)
-      : strategyHash;
-    const maker = seeded
-      ? (seeded.maker as `0x${string}`)
-      : _maker;
-    return buildDockTxPlan(manifest, maker, orderHash, true);
+    if (seeded) {
+      return buildDockTxPlan(manifest, seeded.maker as `0x${string}`, seeded.orderHash as `0x${string}`, true);
+    }
+
+    const discovery = createDiscoveryProvider({
+      manifest,
+      client: this.client,
+      subgraphUrl: this.config.subgraphUrl,
+      feedAddress: this.config.chainlinkFeed,
+    });
+    const { candidates } = await discovery.listCandidates(DEMO_MARKET);
+    const found = candidates.find((c) => c.strategyKey === strategyHash || c.orderHash === strategyHash);
+    if (!found) {
+      throw new RiptideFrontendApiError({
+        code: "RiptideStrategyNotActive",
+        message: `No active strategy for ${strategyHash}. It may already be docked.`,
+      });
+    }
+    return buildDockTxPlan(manifest, found.strategy.maker, found.orderHash, true);
   }
 
   async restoreDemoStrategies() {
@@ -743,6 +828,21 @@ export class LiveFrontendApi implements RiptideFrontendApi {
     }));
   }
 
+  async listResolvers(limit = 25) {
+    if (!this.config.subgraphUrl) return [];
+    const rows = await queryResolvers(this.config.subgraphUrl, limit);
+    return rows.map((r) => ({
+      address: r.id,
+      settlementCount: Number(r.settlementCount),
+      paidToResolverWad: r.paidToResolverWad,
+      retainedForLPsWad: r.retainedForLPsWad,
+      amountInWad: r.amountInWad,
+      outWad: r.outWad,
+      firstSeenTimestamp: r.firstSeenTimestamp,
+      lastSeenTimestamp: r.lastSeenTimestamp,
+    }));
+  }
+
   async getRecaptureStats(scope: RecaptureStatsScope) {
     if (!this.config.subgraphUrl) {
       const { stats } = await scanProtocolFromRpc(this.client, this.manifest());
@@ -834,6 +934,7 @@ export class LiveFrontendApi implements RiptideFrontendApi {
         surplusWad: r.surplusWad,
         payToResolver: r.payToResolverWad,
         retainToLP: r.retainToLPWad,
+        settledBy: r.settledBy,
         blockNumber: r.blockNumber,
         timestamp: r.timestamp,
         txHash: r.txHash,

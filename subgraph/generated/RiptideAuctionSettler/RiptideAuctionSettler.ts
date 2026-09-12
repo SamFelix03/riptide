@@ -318,9 +318,152 @@ export class SwapFilled__Params {
   }
 }
 
-export class RiptideBatchExecutor extends ethereum.SmartContract {
-  static bind(address: Address): RiptideBatchExecutor {
-    return new RiptideBatchExecutor("RiptideBatchExecutor", address);
+export class RiptideAuctionSettler__settleRebalanceResultResultStruct extends ethereum.Tuple {
+  get surplusWad(): BigInt {
+    return this[0].toBigInt();
+  }
+
+  get payToResolver(): BigInt {
+    return this[1].toBigInt();
+  }
+
+  get retainToLP(): BigInt {
+    return this[2].toBigInt();
+  }
+}
+
+export class RiptideAuctionSettler__settleRebalanceInputSStruct extends ethereum.Tuple {
+  get maker(): Address {
+    return this[0].toAddress();
+  }
+
+  get baseToken(): Address {
+    return this[1].toAddress();
+  }
+
+  get quoteToken(): Address {
+    return this[2].toAddress();
+  }
+
+  get reserveBaseWad(): BigInt {
+    return this[3].toBigInt();
+  }
+
+  get reserveQuoteWad(): BigInt {
+    return this[4].toBigInt();
+  }
+
+  get fee(): RiptideAuctionSettler__settleRebalanceInputSFeeStruct {
+    return changetype<RiptideAuctionSettler__settleRebalanceInputSFeeStruct>(
+      this[5].toTuple(),
+    );
+  }
+
+  get auction(): RiptideAuctionSettler__settleRebalanceInputSAuctionStruct {
+    return changetype<RiptideAuctionSettler__settleRebalanceInputSAuctionStruct>(
+      this[6].toTuple(),
+    );
+  }
+
+  get oracle(): RiptideAuctionSettler__settleRebalanceInputSOracleStruct {
+    return changetype<RiptideAuctionSettler__settleRebalanceInputSOracleStruct>(
+      this[7].toTuple(),
+    );
+  }
+
+  get feeProvider(): Address {
+    return this[8].toAddress();
+  }
+
+  get salt(): Bytes {
+    return this[9].toBytes();
+  }
+}
+
+export class RiptideAuctionSettler__settleRebalanceInputSFeeStruct extends ethereum.Tuple {
+  get feeMin(): i32 {
+    return this[0].toI32();
+  }
+
+  get feeMax(): i32 {
+    return this[1].toI32();
+  }
+
+  get lambda(): BigInt {
+    return this[2].toBigInt();
+  }
+
+  get kp(): BigInt {
+    return this[3].toBigInt();
+  }
+
+  get ki(): BigInt {
+    return this[4].toBigInt();
+  }
+
+  get iMax(): BigInt {
+    return this[5].toBigInt();
+  }
+
+  get sigmaMin(): BigInt {
+    return this[6].toBigInt();
+  }
+
+  get sigmaMax(): BigInt {
+    return this[7].toBigInt();
+  }
+}
+
+export class RiptideAuctionSettler__settleRebalanceInputSAuctionStruct extends ethereum.Tuple {
+  get beta(): BigInt {
+    return this[0].toBigInt();
+  }
+
+  get duration(): i32 {
+    return this[1].toI32();
+  }
+
+  get decay(): BigInt {
+    return this[2].toBigInt();
+  }
+
+  get antiSandwichPeriod(): i32 {
+    return this[3].toI32();
+  }
+}
+
+export class RiptideAuctionSettler__settleRebalanceInputSOracleStruct extends ethereum.Tuple {
+  get feed(): Address {
+    return this[0].toAddress();
+  }
+
+  get decimals(): i32 {
+    return this[1].toI32();
+  }
+
+  get maxStaleness(): i32 {
+    return this[2].toI32();
+  }
+}
+
+export class RiptideAuctionSettler extends ethereum.SmartContract {
+  static bind(address: Address): RiptideAuctionSettler {
+    return new RiptideAuctionSettler("RiptideAuctionSettler", address);
+  }
+
+  KERNEL(): Address {
+    let result = super.call("KERNEL", "KERNEL():(address)", []);
+
+    return result[0].toAddress();
+  }
+
+  try_KERNEL(): ethereum.CallResult<Address> {
+    let result = super.tryCall("KERNEL", "KERNEL():(address)", []);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 
   REBALANCE_ROUTER(): Address {
@@ -346,19 +489,57 @@ export class RiptideBatchExecutor extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 
-  SWAP_ROUTER(): Address {
-    let result = super.call("SWAP_ROUTER", "SWAP_ROUTER():(address)", []);
+  settleRebalance(
+    maker: Address,
+    s: RiptideAuctionSettler__settleRebalanceInputSStruct,
+    outWad: BigInt,
+    maxInWad: BigInt,
+    deadline: BigInt,
+  ): RiptideAuctionSettler__settleRebalanceResultResultStruct {
+    let result = super.call(
+      "settleRebalance",
+      "settleRebalance(address,(address,address,address,uint128,uint128,(uint24,uint24,uint64,uint64,uint64,uint64,uint64,uint64),(uint64,uint16,uint64,uint16),(address,uint8,uint16),address,bytes32),uint256,uint256,uint40):((uint256,uint256,uint256))",
+      [
+        ethereum.Value.fromAddress(maker),
+        ethereum.Value.fromTuple(s),
+        ethereum.Value.fromUnsignedBigInt(outWad),
+        ethereum.Value.fromUnsignedBigInt(maxInWad),
+        ethereum.Value.fromUnsignedBigInt(deadline),
+      ],
+    );
 
-    return result[0].toAddress();
+    return changetype<RiptideAuctionSettler__settleRebalanceResultResultStruct>(
+      result[0].toTuple(),
+    );
   }
 
-  try_SWAP_ROUTER(): ethereum.CallResult<Address> {
-    let result = super.tryCall("SWAP_ROUTER", "SWAP_ROUTER():(address)", []);
+  try_settleRebalance(
+    maker: Address,
+    s: RiptideAuctionSettler__settleRebalanceInputSStruct,
+    outWad: BigInt,
+    maxInWad: BigInt,
+    deadline: BigInt,
+  ): ethereum.CallResult<RiptideAuctionSettler__settleRebalanceResultResultStruct> {
+    let result = super.tryCall(
+      "settleRebalance",
+      "settleRebalance(address,(address,address,address,uint128,uint128,(uint24,uint24,uint64,uint64,uint64,uint64,uint64,uint64),(uint64,uint16,uint64,uint16),(address,uint8,uint16),address,bytes32),uint256,uint256,uint40):((uint256,uint256,uint256))",
+      [
+        ethereum.Value.fromAddress(maker),
+        ethereum.Value.fromTuple(s),
+        ethereum.Value.fromUnsignedBigInt(outWad),
+        ethereum.Value.fromUnsignedBigInt(maxInWad),
+        ethereum.Value.fromUnsignedBigInt(deadline),
+      ],
+    );
     if (result.reverted) {
       return new ethereum.CallResult();
     }
     let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toAddress());
+    return ethereum.CallResult.fromValue(
+      changetype<RiptideAuctionSettler__settleRebalanceResultResultStruct>(
+        value[0].toTuple(),
+      ),
+    );
   }
 }
 
@@ -379,11 +560,11 @@ export class ConstructorCall__Inputs {
     this._call = call;
   }
 
-  get swapRouter(): Address {
+  get rebalanceRouter(): Address {
     return this._call.inputValues[0].value.toAddress();
   }
 
-  get rebalanceRouter(): Address {
+  get kernel(): Address {
     return this._call.inputValues[1].value.toAddress();
   }
 }
@@ -396,106 +577,178 @@ export class ConstructorCall__Outputs {
   }
 }
 
-export class ExecuteCall extends ethereum.Call {
-  get inputs(): ExecuteCall__Inputs {
-    return new ExecuteCall__Inputs(this);
+export class SettleRebalanceCall extends ethereum.Call {
+  get inputs(): SettleRebalanceCall__Inputs {
+    return new SettleRebalanceCall__Inputs(this);
   }
 
-  get outputs(): ExecuteCall__Outputs {
-    return new ExecuteCall__Outputs(this);
+  get outputs(): SettleRebalanceCall__Outputs {
+    return new SettleRebalanceCall__Outputs(this);
   }
 }
 
-export class ExecuteCall__Inputs {
-  _call: ExecuteCall;
+export class SettleRebalanceCall__Inputs {
+  _call: SettleRebalanceCall;
 
-  constructor(call: ExecuteCall) {
+  constructor(call: SettleRebalanceCall) {
     this._call = call;
   }
 
-  get route(): ExecuteCallRouteStruct {
-    return changetype<ExecuteCallRouteStruct>(
-      this._call.inputValues[0].value.toTuple(),
+  get maker(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+
+  get s(): SettleRebalanceCallSStruct {
+    return changetype<SettleRebalanceCallSStruct>(
+      this._call.inputValues[1].value.toTuple(),
+    );
+  }
+
+  get outWad(): BigInt {
+    return this._call.inputValues[2].value.toBigInt();
+  }
+
+  get maxInWad(): BigInt {
+    return this._call.inputValues[3].value.toBigInt();
+  }
+
+  get deadline(): BigInt {
+    return this._call.inputValues[4].value.toBigInt();
+  }
+}
+
+export class SettleRebalanceCall__Outputs {
+  _call: SettleRebalanceCall;
+
+  constructor(call: SettleRebalanceCall) {
+    this._call = call;
+  }
+
+  get result(): SettleRebalanceCallResultOutputStruct {
+    return changetype<SettleRebalanceCallResultOutputStruct>(
+      this._call.outputValues[0].value.toTuple(),
     );
   }
 }
 
-export class ExecuteCall__Outputs {
-  _call: ExecuteCall;
-
-  constructor(call: ExecuteCall) {
-    this._call = call;
-  }
-
-  get amountIn(): BigInt {
-    return this._call.outputValues[0].value.toBigInt();
-  }
-
-  get amountOut(): BigInt {
-    return this._call.outputValues[1].value.toBigInt();
-  }
-}
-
-export class ExecuteCallRouteStruct extends ethereum.Tuple {
-  get base(): Address {
+export class SettleRebalanceCallSStruct extends ethereum.Tuple {
+  get maker(): Address {
     return this[0].toAddress();
   }
 
-  get quote(): Address {
+  get baseToken(): Address {
     return this[1].toAddress();
   }
 
-  get kind(): i32 {
-    return this[2].toI32();
+  get quoteToken(): Address {
+    return this[2].toAddress();
   }
 
-  get payer(): Address {
-    return this[3].toAddress();
-  }
-
-  get recipient(): Address {
-    return this[4].toAddress();
-  }
-
-  get refundRecipient(): Address {
-    return this[5].toAddress();
-  }
-
-  get deadline(): BigInt {
-    return this[6].toBigInt();
-  }
-
-  get salt(): Bytes {
-    return this[7].toBytes();
-  }
-
-  get aggregateLimit(): BigInt {
-    return this[8].toBigInt();
-  }
-
-  get fills(): Array<ExecuteCallRouteFillsStruct> {
-    return this[9].toTupleArray<ExecuteCallRouteFillsStruct>();
-  }
-}
-
-export class ExecuteCallRouteFillsStruct extends ethereum.Tuple {
-  get order(): Bytes {
-    return this[0].toBytes();
-  }
-
-  get maker(): Address {
-    return this[1].toAddress();
-  }
-
-  get strategyKey(): Bytes {
-    return this[2].toBytes();
-  }
-
-  get expectedVersion(): BigInt {
+  get reserveBaseWad(): BigInt {
     return this[3].toBigInt();
   }
 
-  get amount(): BigInt {
+  get reserveQuoteWad(): BigInt {
     return this[4].toBigInt();
+  }
+
+  get fee(): SettleRebalanceCallSFeeStruct {
+    return changetype<SettleRebalanceCallSFeeStruct>(this[5].toTuple());
+  }
+
+  get auction(): SettleRebalanceCallSAuctionStruct {
+    return changetype<SettleRebalanceCallSAuctionStruct>(this[6].toTuple());
+  }
+
+  get oracle(): SettleRebalanceCallSOracleStruct {
+    return changetype<SettleRebalanceCallSOracleStruct>(this[7].toTuple());
+  }
+
+  get feeProvider(): Address {
+    return this[8].toAddress();
+  }
+
+  get salt(): Bytes {
+    return this[9].toBytes();
+  }
+}
+
+export class SettleRebalanceCallSFeeStruct extends ethereum.Tuple {
+  get feeMin(): i32 {
+    return this[0].toI32();
+  }
+
+  get feeMax(): i32 {
+    return this[1].toI32();
+  }
+
+  get lambda(): BigInt {
+    return this[2].toBigInt();
+  }
+
+  get kp(): BigInt {
+    return this[3].toBigInt();
+  }
+
+  get ki(): BigInt {
+    return this[4].toBigInt();
+  }
+
+  get iMax(): BigInt {
+    return this[5].toBigInt();
+  }
+
+  get sigmaMin(): BigInt {
+    return this[6].toBigInt();
+  }
+
+  get sigmaMax(): BigInt {
+    return this[7].toBigInt();
+  }
+}
+
+export class SettleRebalanceCallSAuctionStruct extends ethereum.Tuple {
+  get beta(): BigInt {
+    return this[0].toBigInt();
+  }
+
+  get duration(): i32 {
+    return this[1].toI32();
+  }
+
+  get decay(): BigInt {
+    return this[2].toBigInt();
+  }
+
+  get antiSandwichPeriod(): i32 {
+    return this[3].toI32();
+  }
+}
+
+export class SettleRebalanceCallSOracleStruct extends ethereum.Tuple {
+  get feed(): Address {
+    return this[0].toAddress();
+  }
+
+  get decimals(): i32 {
+    return this[1].toI32();
+  }
+
+  get maxStaleness(): i32 {
+    return this[2].toI32();
+  }
+}
+
+export class SettleRebalanceCallResultOutputStruct extends ethereum.Tuple {
+  get surplusWad(): BigInt {
+    return this[0].toBigInt();
+  }
+
+  get payToResolver(): BigInt {
+    return this[1].toBigInt();
+  }
+
+  get retainToLP(): BigInt {
+    return this[2].toBigInt();
   }
 }

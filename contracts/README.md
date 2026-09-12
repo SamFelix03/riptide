@@ -68,10 +68,10 @@ A rebalance runs this program, built by [`RiptideRebalanceModule._buildRebalance
 | 2 | `RiptideAuctionSchedule._riptideAuctionBalanceIn` | 35 | `uint40 start ‖ uint16 duration ‖ uint64 decay` |
 | 3 | `Decay._decayXD` | 19 | `uint16 antiSandwichPeriod` |
 | 4 | `XYCSwap._xycSwapXD` | 17 | — |
-| 5 | `_riptideRebalanceOpcode` | 34 | `uint64 beta ‖ uint128 staleInWad ‖ address resolver` |
+| 5 | `_riptideRebalanceOpcode` | 34 | `uint64 beta ‖ uint128 staleInWad` |
 | 6 | `Controls._salt` | 20 | `uint64 salt` |
 
-86 program bytes. `Decay` also wraps, so instructions 4–6 execute inside it.
+66 program bytes. `Decay` also wraps, so instructions 4–6 execute inside it.
 
 `Deadline` is **first on purpose**: an expired auction reverts before any balance is touched. That is invariant V5, asserted by [`V5DeadlineFirst.t.sol`](test/invariant/V5DeadlineFirst.t.sol) with a negative control that moves it last and must fail.
 
@@ -101,7 +101,7 @@ The trust chain is deliberately tight:
 
 `execute` ([`:125-180`](src/core/RiptideRebalanceModule.sol#L125-L180)) is the heart of the mechanism:
 
-1. Decode `(beta, staleInWad, resolver)` from the 44-byte args.
+1. Decode `(beta, staleInWad)` from the 24-byte args. The rebate recipient is `ctx.query.taker` — read from the VM, never encoded. Putting an address in the args would fold it into the order hash and pin settlement to one wallet.
 2. Resolve `strategyKey` from the order hash; unknown → `RiptideStrategyNotActive`.
 3. `KERNEL.splitSurplus(...)` — **runs in static context too**, so quoting a loss-making rebalance reverts exactly as settling would.
 4. Only when not static: `AQUA.pull` the rebate, record the revealed price to the oracle, advance the controller, bump the version, emit `RebalanceSettled`.
@@ -119,7 +119,7 @@ balanceIn *= decay^(now − auctionStart)     // resolver pays less the longer i
 require(now <= start + duration)            // window closes
 ```
 
-`XYCSwap` still computes every amount from the constant-product curve; the schedule shifts that curve over time. A guard requires it to run before the swap leg. The args layout matches the reference implementation byte for byte, so program bytes and live order hashes are unchanged — asserted by [`AuctionScheduleByteParity.t.sol`](test/fork/AuctionScheduleByteParity.t.sol) against the pre-migration router still deployed on Base Sepolia.
+`XYCSwap` still computes every amount from the constant-product curve; the schedule shifts that curve over time. A guard requires it to run before the swap leg. The args layout matches the reference implementation byte for byte, so moving the instruction in-house changed nothing about execution — covered by [`Mechanism2.t.sol`](test/fork/Mechanism2.t.sol) and [`V5DeadlineFirst.t.sol`](test/invariant/V5DeadlineFirst.t.sol).
 
 ### 3.4 `fees/RiptideLvrFeeProvider.sol` — Mechanism 1's fee source
 
@@ -204,7 +204,7 @@ This is a deliberate, valid-but-non-canonical use of the slice encoding: the on-
 |---|---|
 | [`RiptideQuoter`](src/periphery/RiptideQuoter.sol) | Exact quotes **through the real VM**, so off-chain quotes equal settlement. `previewRebalance` rebuilds the exact shipped order (hence `buildRebalanceOrderWithAuctionStart`). |
 | [`RiptideLens`](src/periphery/RiptideLens.sol) | Reconciles config, router runtime, live Aqua balances, wallet balance and allowance in one read. |
-| [`RiptideAuctionSettler`](src/periphery/RiptideAuctionSettler.sol) | **Permissionless** rebalance entrypoint. The resolver is `msg.sender`, baked into the order — so the order hash only matches for the actual settler. Protection is the on-chain surplus maths, not a caller allow-list. |
+| [`RiptideAuctionSettler`](src/periphery/RiptideAuctionSettler.sol) | **Permissionless** rebalance entrypoint. Pulls `maxIn` of quote from `msg.sender`, runs the order as the VM taker, then sweeps both legs back to `msg.sender`: unspent quote plus the β rebate, and the `outWad` of base just bought. No caller identity is committed anywhere in the order — protection is the on-chain surplus maths. |
 | [`RiptideBatchExecutor`](src/periphery/RiptideBatchExecutor.sol) | Atomic multi-maker taker settlement. Bounded fills (`MAX_FILLS = 8`), per-fill version checks, aggregate slippage and deadline, reentrancy guard. Any failed fill reverts the whole route. |
 
 ### 3.11 Math libraries
@@ -240,7 +240,36 @@ Aqua holds **allowance records, not tokens**. A maker approves Aqua once; real t
 
 ---
 
-## 5. Access control
+## 5. Events, and why there are two per settlement
+
+Every event RIPTIDE emits is declared in one place,
+[`interfaces/IRiptideEvents.sol`](src/interfaces/IRiptideEvents.sol), so the subgraph ABIs
+and the TypeScript codegen have a single source.
+
+| Event | Emitter | Carries |
+|---|---|---|
+| `StrategyRuntimeInitialized` | swap router | first registration of a strategy key: market, maker, order hash, committed reserves, version |
+| `SwapFilled` | swap router | one fill: amounts, the fee actually applied, the σ that produced it, post-trade Aqua balances, version |
+| `FeeControllerUpdated` | fee provider | one controller step: σ, `feeTarget`, `feeReported` |
+| `RouteExecuted` | batch executor | one atomic multi-maker route: payer, kind, totals, aggregate limit, fill count |
+| `RebalanceSettled` | rebalance router | the β split, revealed price, and the **VM taker** |
+| `AuctionSettled` | auction settler | the same settlement from the **caller's** side: `settledBy`, `outWad`, `amountInWad`, and the split |
+
+The last two describe one settlement and both are needed. `RebalanceSettled` is emitted from
+inside the swap, where the only identity available is `ctx.query.taker`; on the permissionless
+path that taker is the settler contract, which fronts the quote and sweeps both legs back to
+whoever called it. Reporting that address as "the resolver" would attribute every settlement
+in the protocol's history to a single contract. `AuctionSettled` is emitted by the settler
+after the sweep and names `msg.sender`, so per-wallet attribution is recoverable.
+
+They are deliberately not merged. The module cannot see past the settler to `msg.sender`, and
+the settler cannot know the revealed price the module computed — each event reports what its
+emitter actually knows. The subgraph joins them within the transaction
+([`subgraph/src/mappings/settler.ts`](../subgraph/src/mappings/settler.ts)).
+
+---
+
+## 6. Access control
 
 | Entry point | Who may call |
 |---|---|
@@ -261,9 +290,9 @@ Reentrancy: three independent transient locks — SwapVM's per-order guard, the 
 
 ---
 
-## 6. Tests
+## 7. Tests
 
-**119 test functions across 46 files.** Five named protocol invariants, each shipping a **negative control** — a deliberately broken variant that must make the test fail, so a green suite is evidence the test *can* fail.
+**120 test functions across 45 files.** Five named protocol invariants, each shipping a **negative control** — a deliberately broken variant that must make the test fail, so a green suite is evidence the test *can* fail.
 
 | | Property | Negative control |
 |---|---|---|
@@ -273,17 +302,17 @@ Reentrancy: three independent transient locks — SwapVM's per-order guard, the 
 | **V4** | applied fee always inside `[feeMin, feeMax] ⊂ (0, BPS)` | unclamped controller output must fail |
 | **V5** | expired rebalance leaves Aqua balances bit-identical | `Deadline` reordered last must fail |
 
-Plus: the seven SwapVM invariants, 10 fuzz tests at 10,000 runs, 12 differential tests against a committed Python oracle, atomic-rollback and reentrancy tests, and three fork tests that matter for integration claims:
+Plus: the seven SwapVM invariants, 10 fuzz tests at 10,000 runs, 12 differential tests against a committed Python oracle, atomic-rollback and reentrancy tests, and the fork tests that carry the integration claims:
 
 - [`Provenance.t.sol`](test/fork/Provenance.t.sol) — ships real WETH/USDC into the **canonical 1inch Aqua registry** on an Ethereum mainnet fork.
 - [`StockAquaRouterCompat.t.sol`](test/fork/StockAquaRouterCompat.t.sol) — runs RIPTIDE's Mechanism-1 program on a **stock, unmodified `AquaSwapVMRouter`** and asserts it prices identically to ours.
-- [`AuctionScheduleByteParity.t.sol`](test/fork/AuctionScheduleByteParity.t.sol) — asserts the auction args encoding has not drifted, against a live pre-migration router.
+- [`AuctionSettler.t.sol`](test/fork/AuctionSettler.t.sol) — settles from an arbitrary address and asserts it receives both the β rebate and the bought base, that the settler is left holding nothing, and that the settler's `AuctionSettled` receipt names `msg.sender`.
 
 Run them: see [`../docs/TEST_GUIDE.md`](../docs/TEST_GUIDE.md).
 
 ---
 
-## 7. Build configuration
+## 8. Build configuration
 
 `foundry.toml`: Solidity `0.8.30`, `via_ir = true`, `optimizer_runs = 700`, `evm_version = "cancun"` — mirroring swap-vm's own settings, which matters because the frozen opcode indices are build-dependent.
 

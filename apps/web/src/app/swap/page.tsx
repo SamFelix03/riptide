@@ -49,7 +49,7 @@ function SwapPageInner() {
   const [routePlan, setRoutePlan] = useState<TxPlan | null>(null);
   const [simulation, setSimulation] = useState<{ success: boolean; error?: { code: string; message: string } } | null>(null);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
-  const { address, writeContract } = useWallet();
+  const { address } = useWallet();
 
   const markets = useQuery({ queryKey: ["markets"], queryFn: () => api.listMarkets() });
   const market = markets.data?.find((m) => m.id === marketParam) ?? markets.data?.[0];
@@ -80,17 +80,19 @@ function SwapPageInner() {
         recipient: recipient ?? address,
       });
       setRoutePlan(plan);
-      const sim = await simulateTxPlanRemote({ to: plan.to, data: plan.data });
+      // Simulate the swap itself, not a leading approval step. If the plan still carries
+      // an approval the executor has no allowance yet, so an eth_call would only report
+      // that - say so instead of showing a misleading failure.
+      const exec = plan.steps.at(-1) ?? { to: plan.to, data: plan.data };
+      const sim = plan.steps.length > 1
+        ? { success: false as const, error: { code: "ApprovalRequired", message: "Approve the quote token first — the plan's first step does it. Simulation runs once the allowance is in place." } }
+        : await simulateTxPlanRemote({ to: exec.to, data: exec.data, from: address });
       setSimulation(sim);
     } catch (e) {
       setError({ code: "RouteError", message: e instanceof Error ? e.message : String(e) });
     }
   }
 
-  async function handleExecute() {
-    if (!routePlan?.sendable) return;
-    return writeContract({ address: routePlan.to, data: routePlan.data });
-  }
 
   const fills: RouteFill[] = routePlan?.fills ?? [];
   const routeStats = useMemo(() => {
@@ -246,7 +248,8 @@ function SwapPageInner() {
                 {error ? <RiptideErrorDisplay error={error} /> : null}
                 {simulation && !simulation.success && simulation.error ? <RiptideErrorDisplay error={simulation.error} /> : null}
                 {simulation?.success ? <div className="card success card-flush" data-testid="simulation-result">eth_call simulation passed</div> : null}
-                <TransactionStepper plan={routePlan} onExecute={handleExecute} successLabel="Swap executed" />
+                {/* No onExecute: the plan is approve + execute, and the stepper walks both. */}
+                <TransactionStepper plan={routePlan} successLabel="Swap executed" />
               </div>
             </div>
           </div>

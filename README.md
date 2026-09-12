@@ -20,12 +20,12 @@
 
 | Contract | What it is |
 |---|---|
-| [`RiptideSwapVMRouter`](https://sepolia.basescan.org/address/0xB017960ab6D10460bEc7a7F64A1Db4C887F89418) | Mechanism 1 — the Aqua app + SwapVM router for taker swaps |
-| [`RiptideRebalanceRouter`](https://sepolia.basescan.org/address/0xC5c637DeA853ef5f0c26425F7C7EDC17039dA1E3) | Mechanism 2 — hosts the custom rebalance instruction (opcode 34) |
-| [`RiptideLvrFeeProvider`](https://sepolia.basescan.org/address/0x35B4d133D2904b7ED2Ef7bf57dd6182cf7bfEC49) | The `IProtocolFeeProvider` 1inch SwapVM staticcalls for the live fee |
-| [`RiptideVolatilityOracle`](https://sepolia.basescan.org/address/0x59884D4B7bC0E5dB7b3f4D7255F1350471d70901) | On-chain EWMA volatility estimator (σ) |
-| [`RiptideBatchExecutor`](https://sepolia.basescan.org/address/0x53De9A6d6ec27cCBdb2F22912e0255af96EeDF29) | Atomic multi-maker taker settlement |
-| [`RiptideAuctionSettler`](https://sepolia.basescan.org/address/0xcA012FC3A5818FF3046e881703C22ad89E30D634) | Permissionless rebalance settlement entrypoint |
+| [`RiptideSwapVMRouter`](https://sepolia.basescan.org/address/0xf51E8b2f5958Ca7702076923d6F0135027e51B06) | Mechanism 1 — the Aqua app + SwapVM router for taker swaps |
+| [`RiptideRebalanceRouter`](https://sepolia.basescan.org/address/0x65e70C18845b411D456af79306609B474Da9eaAA) | Mechanism 2 — hosts the custom rebalance instruction (opcode 34) |
+| [`RiptideLvrFeeProvider`](https://sepolia.basescan.org/address/0x188dC95578f7feE2639473DA75427c468ADCe395) | The `IProtocolFeeProvider` 1inch SwapVM staticcalls for the live fee |
+| [`RiptideVolatilityOracle`](https://sepolia.basescan.org/address/0xDc44dE5E0c704511aa5073337B93E0478c563251) | On-chain EWMA volatility estimator (σ) |
+| [`RiptideBatchExecutor`](https://sepolia.basescan.org/address/0x7F36E1D8A0373cC6244D87816F238f43Db424415) | Atomic multi-maker taker settlement |
+| [`RiptideAuctionSettler`](https://sepolia.basescan.org/address/0x254DCF81bC0D6116b2e2421D252b9D47Efee2071) | Permissionless rebalance settlement entrypoint |
 | [`Aqua`](https://sepolia.basescan.org/address/0xa6e7714D9956D88C4f26C19a481b12bB60B90Ed2) | 1inch Aqua v1.0.0 (unmodified) — holds every maker allowance |
 
 [Full address table, including kernel, quoter, lens, demo tokens and the mock feed →](#deployed-addresses)
@@ -36,6 +36,7 @@
 |---|---|
 | [`contracts/README.md`](contracts/README.md) | **Contract-by-contract walkthrough** — every contract, both SwapVM program byte layouts, access control, invariants |
 | [`docs/TEST_GUIDE.md`](docs/TEST_GUIDE.md) | **Run it yourself** — local Anvil setup and how to exercise every feature |
+| [`docs/E2E_RUN.md`](docs/E2E_RUN.md) | **Proof it works** — every transaction from one end-to-end run against the live app, with the assertions each one satisfies |
 | [`subgraph/README.md`](subgraph/README.md) | **The Graph integration** — what is indexed, which Graph features are used, and why it is load-bearing |
 | [`docs/INDEX.md`](docs/INDEX.md) | Map of the whole spec set |
 | [`docs/SOURCES.md`](docs/SOURCES.md) | The honesty ledger: what was verified, what was kept, what was scrapped and why |
@@ -169,7 +170,7 @@ You keep your tokens in your own wallet. Aqua holds an allowance record, not you
 
 ## Reading the code, and running it
 
-**How RIPTIDE is built on 1inch.** Aqua is the custody layer: makers keep tokens in their own wallets, Aqua holds allowance records, and RIPTIDE's routers are registered as Aqua *apps* that `pull`/`push` against a maker's ledger entry. No RIPTIDE contract ever holds inventory. SwapVM is the execution layer: a strategy *is* a bytecode program, and RIPTIDE emits two of them — a 41-byte swap program built entirely from upstream opcodes (`Deadline → aquaDynamicProtocolFee → XYCSwap → Salt`), and an 86-byte rebalance program that adds two RIPTIDE instructions. The dynamic fee needs no new opcode at all: it is 1inch's existing `IProtocolFeeProvider` hook, answered by a contract that reads an on-chain volatility estimate. Everything compiles against `swap-vm@v1.0.2` and `aqua@v1.0.0` — the releases actually deployed on mainnet — and `@1inch/aqua-sdk` builds all Aqua calldata. Details, including why we deploy our own slimmed routers and why the swap-vm SDK is unused: [§2.1](#21-which-1inch-packages-we-use-and-how).
+**How RIPTIDE is built on 1inch.** Aqua is the custody layer: makers keep tokens in their own wallets, Aqua holds allowance records, and RIPTIDE's routers are registered as Aqua *apps* that `pull`/`push` against a maker's ledger entry. No RIPTIDE contract ever holds inventory. SwapVM is the execution layer: a strategy *is* a bytecode program, and RIPTIDE emits two of them — a 41-byte swap program built entirely from upstream opcodes (`Deadline → aquaDynamicProtocolFee → XYCSwap → Salt`), and a 66-byte rebalance program that adds two RIPTIDE instructions. The dynamic fee needs no new opcode at all: it is 1inch's existing `IProtocolFeeProvider` hook, answered by a contract that reads an on-chain volatility estimate. Everything compiles against `swap-vm@v1.0.2` and `aqua@v1.0.0` — the releases actually deployed on mainnet — and `@1inch/aqua-sdk` builds all Aqua calldata. Details, including why we deploy our own slimmed routers and why the swap-vm SDK is unused: [§2.1](#21-which-1inch-packages-we-use-and-how).
 
 **[`contracts/README.md`](contracts/README.md) — what each contract does.** A walkthrough of all 35 source files with line references: both program byte layouts instruction by instruction, the fee provider's determinism guarantee, the β-split maths, the router/module trust chain, the 226-byte payload format, the full access-control table, and the invariant suite.
 
@@ -184,19 +185,19 @@ You keep your tokens in your own wallet. Aqua holds an allowance record, not you
 | Contract | Address |
 |---|---|
 | Aqua | [`0xa6e7714D9956D88C4f26C19a481b12bB60B90Ed2`](https://sepolia.basescan.org/address/0xa6e7714D9956D88C4f26C19a481b12bB60B90Ed2) |
-| RiptideSwapVMRouter | [`0xB017960ab6D10460bEc7a7F64A1Db4C887F89418`](https://sepolia.basescan.org/address/0xB017960ab6D10460bEc7a7F64A1Db4C887F89418) |
-| RiptideRebalanceRouter | [`0xC5c637DeA853ef5f0c26425F7C7EDC17039dA1E3`](https://sepolia.basescan.org/address/0xC5c637DeA853ef5f0c26425F7C7EDC17039dA1E3) |
-| RiptideRebalanceKernel | [`0x033b27B1bb7Fc3A65144C1E87309250ad604dE9a`](https://sepolia.basescan.org/address/0x033b27B1bb7Fc3A65144C1E87309250ad604dE9a) |
-| RiptideVolatilityOracle | [`0x59884D4B7bC0E5dB7b3f4D7255F1350471d70901`](https://sepolia.basescan.org/address/0x59884D4B7bC0E5dB7b3f4D7255F1350471d70901) |
-| RiptideLvrFeeProvider | [`0x35B4d133D2904b7ED2Ef7bf57dd6182cf7bfEC49`](https://sepolia.basescan.org/address/0x35B4d133D2904b7ED2Ef7bf57dd6182cf7bfEC49) |
-| RiptideAuctionSettler | [`0xcA012FC3A5818FF3046e881703C22ad89E30D634`](https://sepolia.basescan.org/address/0xcA012FC3A5818FF3046e881703C22ad89E30D634) |
-| RiptideQuoter | [`0x9298aEd285B58AcED4d07780886993838d5D2289`](https://sepolia.basescan.org/address/0x9298aEd285B58AcED4d07780886993838d5D2289) |
-| RiptideLens | [`0xc7628aeE705977734B9e15C772A47C395A9909C4`](https://sepolia.basescan.org/address/0xc7628aeE705977734B9e15C772A47C395A9909C4) |
-| RiptideBatchExecutor | [`0x53De9A6d6ec27cCBdb2F22912e0255af96EeDF29`](https://sepolia.basescan.org/address/0x53De9A6d6ec27cCBdb2F22912e0255af96EeDF29) |
+| RiptideSwapVMRouter | [`0xf51E8b2f5958Ca7702076923d6F0135027e51B06`](https://sepolia.basescan.org/address/0xf51E8b2f5958Ca7702076923d6F0135027e51B06) |
+| RiptideRebalanceRouter | [`0x65e70C18845b411D456af79306609B474Da9eaAA`](https://sepolia.basescan.org/address/0x65e70C18845b411D456af79306609B474Da9eaAA) |
+| RiptideRebalanceKernel | [`0x8e9c8f4123dAfE31421Ef31efb2D24c039C504d2`](https://sepolia.basescan.org/address/0x8e9c8f4123dAfE31421Ef31efb2D24c039C504d2) |
+| RiptideVolatilityOracle | [`0xDc44dE5E0c704511aa5073337B93E0478c563251`](https://sepolia.basescan.org/address/0xDc44dE5E0c704511aa5073337B93E0478c563251) |
+| RiptideLvrFeeProvider | [`0x188dC95578f7feE2639473DA75427c468ADCe395`](https://sepolia.basescan.org/address/0x188dC95578f7feE2639473DA75427c468ADCe395) |
+| RiptideAuctionSettler | [`0x254DCF81bC0D6116b2e2421D252b9D47Efee2071`](https://sepolia.basescan.org/address/0x254DCF81bC0D6116b2e2421D252b9D47Efee2071) |
+| RiptideQuoter | [`0x0849a81fA8976e3d391d3F6AC8ed23Ac1E4e017A`](https://sepolia.basescan.org/address/0x0849a81fA8976e3d391d3F6AC8ed23Ac1E4e017A) |
+| RiptideLens | [`0x3c5Cc60D38858865D947fd268d453bB219dbbEa8`](https://sepolia.basescan.org/address/0x3c5Cc60D38858865D947fd268d453bB219dbbEa8) |
+| RiptideBatchExecutor | [`0x7F36E1D8A0373cC6244D87816F238f43Db424415`](https://sepolia.basescan.org/address/0x7F36E1D8A0373cC6244D87816F238f43Db424415) |
 | Demo tokens | RBASE [`0xCd75c96a6659d94004EFBe528D95eAF933A916be`](https://sepolia.basescan.org/address/0xCd75c96a6659d94004EFBe528D95eAF933A916be) · RQUOTE [`0x5A2858D733295000199CA9030e4A094e9E9EF846`](https://sepolia.basescan.org/address/0x5A2858D733295000199CA9030e4A094e9E9EF846) |
 | Mock Chainlink feed | [`0x92a149C90d5C43DF299F9db5F8F3c3cC7C7Edd0D`](https://sepolia.basescan.org/address/0x92a149C90d5C43DF299F9db5F8F3c3cC7C7Edd0D) |
 
-Deployed at block `46695284`. Subgraph: [`riptide` on Graph Studio](https://api.studio.thegraph.com/query/1758400/riptide/version/latest).
+Deployed at block `46742718`. Subgraph: [`riptide` on Graph Studio](https://api.studio.thegraph.com/query/1758400/riptide/version/latest).
 
 Three strategies are seeded and live, each with a different fee/auction policy:
 
@@ -213,7 +214,7 @@ Three strategies are seeded and live, each with a different fee/auction policy:
 ## Repository map
 
 ```
-contracts/          Foundry project — 35 source files, 44 test files, 113 tests
+contracts/          Foundry project — 35 source files, 45 test files, 120 tests
   src/types/          RiptideTypes, RiptideErrors            shared structs + 30 named errors
   src/libraries/      WadMulDiv, LnExpMath, CpmmMath,        the math layer
                       VolatilityMath, LvrMath, FeeController,
@@ -245,7 +246,7 @@ services/
   vol-indexer/        :8083 — publishes price observations to the oracle
   liquidity-mcp/      :8084 — MCP server exposing executable-liquidity tools
 
-subgraph/             The Graph — 10 entities, 5 datasources, matchstick tests
+subgraph/             The Graph — 13 entities, 6 datasources, matchstick tests
 apps/web/             Next.js 15 — 6 pages, one per persona
 tools/reference/      Python differential oracle (stdlib Decimal, no deps)
 test/vectors/         6 committed JSON vector files — the shared source of truth
@@ -439,7 +440,7 @@ Built by [`RiptideRebalanceModule._buildRebalanceProgram:197-218`](contracts/src
 | 2 | `DutchAuctionBalanceIn` | `0x23` | `uint40 start ‖ uint16 duration ‖ uint64 decay` |
 | 3 | `Decay` | `0x13` | `uint16 antiSandwichPeriod` |
 | 4 | `XYCSwap` | `0x11` | — |
-| 5 | **`RiptideRebalance`** | `0x22` | `uint64 beta ‖ uint128 staleInWad ‖ address resolver` |
+| 5 | **`RiptideRebalance`** | `0x22` | `uint64 beta ‖ uint128 staleInWad` |
 | 6 | `Salt` | `0x14` | `uint64 salt` |
 
 `Decay` also wraps, so the real trace is:
@@ -532,7 +533,7 @@ Remove that conversion and the VM charges 100× less than the controller intends
 
 swap-vm splits its opcodes by curve shape. `AquaOpcodes` is the AMM group — non-linear curves, and what the deployed `AquaSwapVMRouter` dispatches. `LimitOpcodes` is the limit-order group, where exchange ratios are linear. `DutchAuction` lives in the **limit-order** group, and 1inch's own SDK mirrors the split: `AquaProgramBuilder` exposes no `dutchAuction*`, only `RegularProgramBuilder` does.
 
-RIPTIDE is an AMM, so rather than borrow a limit-order opcode into an AMM router, the schedule is RIPTIDE's own instruction — [`RiptideAuctionSchedule.sol`](contracts/src/core/RiptideAuctionSchedule.sol). It is deliberately AMM-shaped: it only *scales a reserve register*, never prices a swap. `XYCSwap` still computes every amount from the constant-product curve; the schedule just shifts that curve over time. The args layout is unchanged from the reference implementation, so program bytes — and every live Aqua order hash — are identical, which [`AuctionScheduleByteParity.t.sol`](contracts/test/fork/AuctionScheduleByteParity.t.sol) asserts against the pre-migration router still live on Base Sepolia.
+RIPTIDE is an AMM, so rather than borrow a limit-order opcode into an AMM router, the schedule is RIPTIDE's own instruction — [`RiptideAuctionSchedule.sol`](contracts/src/core/RiptideAuctionSchedule.sol). It is deliberately AMM-shaped: it only *scales a reserve register*, never prices a swap. `XYCSwap` still computes every amount from the constant-product curve; the schedule just shifts that curve over time. Its args layout matches the reference implementation byte for byte, so the migration to a RIPTIDE-owned instruction changed nothing about how the program executes — verified by [`Mechanism2.t.sol`](contracts/test/fork/Mechanism2.t.sol) and the V5 deadline invariant.
 
 
 [`RiptideAuctionSchedule.sol:82-91`](contracts/src/core/RiptideAuctionSchedule.sol#L82-L91) shrinks the maker's demanded input over time:
@@ -548,7 +549,7 @@ For an exact-out rebalance, `XYCSwap` computes `amountIn = ⌈out·balanceIn/(ba
 
 [`RiptideRebalanceModule.execute:125-180`](contracts/src/core/RiptideRebalanceModule.sol#L125-L180):
 
-1. Decode `(beta, staleInWad, resolver)` from the 44-byte args.
+1. Decode `(beta, staleInWad)` from the 24-byte args. The resolver is **not** in the args — it is `ctx.query.taker`, read from the VM at execution time. Encoding it in the program would put it in the order hash, which would have meant only one pre-designated address could ever settle.
 2. Resolve `strategyKey` from the order hash; unknown → `RiptideStrategyNotActive`.
 3. `KERNEL.splitSurplus(amountIn, staleInWad, beta)` — **runs in static context too**, so a `quote()` of a no-surplus rebalance reverts exactly as `swap()` would.
 4. Only when not static: pull the rebate, record the revealed price, advance the controller, bump the version, emit `RebalanceSettled`.
@@ -561,9 +562,11 @@ payToResolver = ⌊(WAD − β)·S / WAD⌋                  floored — roundin
 retainToLP    = S − payToResolver                    ≥ ⌊β·S⌋, exact conservation
 ```
 
-`payToResolver` is paid with `AQUA.pull(maker, orderHash, tokenIn, amount, resolver)`. `retainToLP` needs no transfer — it is already in the maker's Aqua balance.
+`payToResolver` is paid with `AQUA.pull(maker, orderHash, tokenIn, amount, taker)` — the rebate follows whoever is settling. `retainToLP` needs no transfer — it is already in the maker's Aqua balance.
 
-The baseline `staleIn` is what the *pre-rebalance* curve would have demanded, computed by [`RiptideRebalanceKernel.staleBaselineIn`](contracts/src/core/RiptideRebalanceKernel.sol). The no-surplus guard is what makes the auction safe: a malicious or losing bid cannot touch maker inventory, and this is enforced by on-chain arithmetic, not by a caller allow-list. Settlement is fully permissionless — [`RiptideAuctionSettler.settleRebalance`](contracts/src/periphery/RiptideAuctionSettler.sol).
+The baseline `staleIn` is what the *pre-rebalance* curve would have demanded, computed by [`RiptideRebalanceKernel.staleBaselineIn`](contracts/src/core/RiptideRebalanceKernel.sol). The no-surplus guard is what makes the auction safe: a malicious or losing bid cannot touch maker inventory, and this is enforced by on-chain arithmetic, not by a caller allow-list.
+
+Settlement is genuinely permissionless. [`RiptideAuctionSettler.settleRebalance`](contracts/src/periphery/RiptideAuctionSettler.sol) can be called by any address: it pulls `maxIn` of the quote token from `msg.sender`, runs the auction order, then sweeps both legs back to `msg.sender` — the unspent quote plus the `β` rebate, and the `outWad` of base the resolver just bought. Nothing about the caller is committed in the order, so a wallet that has never touched this deployment can settle a live auction with no setup beyond an ERC20 approval. [`AuctionSettler.t.sol`](contracts/test/fork/AuctionSettler.t.sol) asserts both, including that an arbitrary address gets the same treatment as the demo resolver.
 
 Verified by [`V1BetaSplit.t.sol`](contracts/test/invariant/V1BetaSplit.t.sol) (conservation and the `≥ β·S` floor, checked against the resolver's *actual* token delta, with an over-paying negative control) and [`V2NoSurplus.t.sol`](contracts/test/invariant/V2NoSurplus.t.sol).
 
@@ -611,7 +614,7 @@ Three implementations then consume the *same* files and must agree:
 
 ## 8. Test suite
 
-**113 test functions across 44 test files.** Five named protocol invariants, each shipping a **negative control** — a deliberately broken variant that must make the test fail, so a green suite is evidence the test *can* fail:
+**120 test functions across 45 test files.** Five named protocol invariants, each shipping a **negative control** — a deliberately broken variant that must make the test fail, so a green suite is evidence the test *can* fail:
 
 | | Property | Negative control |
 |---|---|---|
@@ -624,6 +627,22 @@ Three implementations then consume the *same* files and must agree:
 Plus: the seven SwapVM invariants ([`SwapVMInvariants.t.sol`](contracts/test/fork/SwapVMInvariants.t.sol)), 10 fuzz tests at 10,000 runs, 12 differential tests, atomic-rollback and reentrancy tests, and a mainnet fork test against the real 1inch Aqua registry.
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs seven jobs: contracts, a full Anvil deploy+seed+service-integration pass, subgraph matchstick, TypeScript packages, web Playwright, a hardcoded-address audit, and the Python vector check.
+
+### Against the deployed app
+
+Unit and fork tests prove the contracts in isolation. [`tools/demo/e2e-live.mjs`](tools/demo/e2e-live.mjs)
+proves the whole thing together: it generates two wallets, funds them from the demo faucet,
+and walks every persona — ship, swap exact-in, swap exact-out, skew the oracle, preview,
+settle, dock, read the analytics — talking only to the same HTTP endpoints the browser
+uses. Nothing is pre-approved and no fixture is involved; each assertion is checked against
+on-chain state or the indexed data.
+
+```bash
+APP=https://riptide-web-production-77f7.up.railway.app node tools/demo/e2e-live.mjs
+```
+
+The most recent run — 20 transactions, 41/41 assertions, every hash linked to BaseScan — is
+recorded in [`docs/E2E_RUN.md`](docs/E2E_RUN.md).
 
 ## 9. Off-chain services
 
@@ -653,7 +672,7 @@ RIPTIDE is a **single-maker micro-pool** design: there is no shared pool contrac
 
 So the taker path is **discover off-chain, verify on-chain**. The subgraph answers "what exists"; the contracts re-derive every number that matters. A block-lag or mapping bug can make a stale route revert — it can never authorise a bad fill.
 
-**What is indexed** — `specVersion 1.0.0`, mapping `apiVersion 0.0.9`, five datasources and nine handlers across [`subgraph/subgraph.yaml`](subgraph/subgraph.yaml):
+**What is indexed** — `specVersion 1.0.0`, mapping `apiVersion 0.0.9`, six datasources and ten handlers across [`subgraph/subgraph.yaml`](subgraph/subgraph.yaml):
 
 | Datasource | Handlers |
 |---|---|
@@ -662,14 +681,17 @@ So the taker path is **discover off-chain, verify on-chain**. The subgraph answe
 | `RiptideLvrFeeProvider` | `FeeControllerUpdated` — the σ → `feeTarget` → `feeReported` series ([`fee-provider.ts`](subgraph/src/mappings/fee-provider.ts)) |
 | `RiptideBatchExecutor` | `RouteExecuted` ([`batch-executor.ts`](subgraph/src/mappings/batch-executor.ts)) |
 | `RiptideRebalanceRouter` | `RebalanceSettled` — the β split ([`rebalance-router.ts`](subgraph/src/mappings/rebalance-router.ts)) |
+| `RiptideAuctionSettler` | `AuctionSettled` — who actually settled ([`settler.ts`](subgraph/src/mappings/settler.ts)) |
 
-Eleven entities in [`schema.graphql`](subgraph/schema.graphql). `Fill`, `Rebalance`, `ControllerState` and `Route` are `@entity(immutable: true)` — append-only history, cheaper to index. `Protocol`, `Market` and `Maker` stay mutable because they carry running totals, including cumulative β-recaptured. `@derivedFrom` gives the reverse lookups without hand-maintained arrays.
+Thirteen entities in [`schema.graphql`](subgraph/schema.graphql). `Fill`, `ControllerState` and `Route` are `@entity(immutable: true)` — append-only history, cheaper to index. `Protocol`, `Market` and `Maker` stay mutable because they carry running totals, including cumulative β-recaptured. `@derivedFrom` gives the reverse lookups without hand-maintained arrays.
+
+**Two events, one settlement.** `Rebalance` is the only history row that is *not* immutable, and the reason is worth stating. The router's `RebalanceSettled` fires inside the swap and names the VM taker; when settlement goes through `RiptideAuctionSettler` — which is the permissionless path, and the one the UI uses — that taker is the settler contract, not a person. The settler emits its own `AuctionSettled` receipt later in the same transaction naming `msg.sender`, and [`settler.ts`](subgraph/src/mappings/settler.ts) joins the two through a `RebalanceTxIndex` row keyed by `txHash-strategyKey`, rewriting `Rebalance.settledBy` and rolling up a per-wallet `Resolver` aggregate. Without that join, every settlement in the analytics would be attributed to one contract address and the resolver leaderboard would be a single row.
 
 **The field that makes the product work.** A strategy's fee policy, auction policy and salt live *only* in the 226-byte payload inside the Aqua order — Aqua exposes no getter for it, and neither router stores it. The single place those bytes are ever visible is Aqua's `Shipped` event, so the mapping persists them as `Strategy.orderBytes`. The solver decodes them ([`packages/solver-core/src/orderPayload.ts`](packages/solver-core/src/orderPayload.ts)) and rebuilds a priceable strategy. **Without this, anything a real maker ships through the UI is invisible to takers** — only the hardcoded demo strategies would be routable. This is the clearest case of The Graph doing something in RIPTIDE that no RPC call can.
 
 **Freshness is returned, not hidden.** `_meta { block }` is compared against the chain head on every quote, and the UI renders the indexed block with a stale badge past a threshold — because a router built on an old snapshot can quote liquidity that has already moved.
 
-Queried through 10 typed queries in [`packages/solver-core/src/subgraph/client.ts`](packages/solver-core/src/subgraph/client.ts), consumed by the solver, the resolver bot, the MCP server and every analytics surface. Matchstick tests in [`subgraph/tests/`](subgraph/tests) cover creation and replay-idempotency per datasource.
+Queried through 11 typed queries in [`packages/solver-core/src/subgraph/client.ts`](packages/solver-core/src/subgraph/client.ts), consumed by the solver, the resolver bot, the MCP server and every analytics surface. Matchstick tests in [`subgraph/tests/`](subgraph/tests) cover creation and replay-idempotency per datasource.
 
 If no subgraph is configured, every read falls back to RPC `getLogs` from the deploy block ([`packages/solver-core/src/rpcEvents.ts`](packages/solver-core/src/rpcEvents.ts)) — the app still works, but maker-shipped strategies stop being routable, freshness degrades to unknown, and aggregates are recomputed by log-scanning on every request. The fallback is a correctness guarantee, not a substitute.
 

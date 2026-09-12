@@ -237,7 +237,7 @@ abstract contract RiptideForkBase is Test {
     function _shipRebalanceStrategy() internal {
         uint40 auctionStart = uint40(block.timestamp);
         ISwapVM.Order memory rebOrder = rebalanceRouter.buildRebalanceOrderWithAuctionStart(
-            maker, strategy, RiptideConstants.SWAP_ORDER_DEADLINE, 1e18, resolver, true, auctionStart
+            maker, strategy, RiptideConstants.SWAP_ORDER_DEADLINE, 1e18, true, auctionStart
         );
         bytes32 rebHash = rebalanceRouter.hash(rebOrder);
         strategyKey = RiptideStrategyCodec.runtimeStrategyKey(maker, strategy.salt);

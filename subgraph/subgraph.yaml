@@ -130,3 +130,26 @@ dataSources:
       eventHandlers:
         - event: RebalanceSettled(indexed bytes32,indexed address,indexed address,bytes32,address,address,uint256,uint256,uint256,uint256,uint256,uint128,uint64)
           handler: handleRebalanceSettled
+
+  - kind: ethereum
+    name: RiptideAuctionSettler
+    network: anvil
+    source:
+      address: "0x0165878A594ca255338adfa4d48449f69242Eb8F"
+      abi: RiptideAuctionSettler
+      startBlock: 1
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Rebalance
+        - Resolver
+        - RebalanceTxIndex
+      abis:
+        - name: RiptideAuctionSettler
+          file: ./abis/RiptideAuctionSettler.json
+      file: ./src/mappings/settler.ts
+      eventHandlers:
+        - event: AuctionSettled(indexed bytes32,indexed address,indexed address,uint256,uint256,uint256,uint256,uint256)
+          handler: handleAuctionSettled

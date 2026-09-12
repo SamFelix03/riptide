@@ -10,6 +10,52 @@ import {
   BigInt,
 } from "@graphprotocol/graph-ts";
 
+export class AuctionSettled extends ethereum.Event {
+  get params(): AuctionSettled__Params {
+    return new AuctionSettled__Params(this);
+  }
+}
+
+export class AuctionSettled__Params {
+  _event: AuctionSettled;
+
+  constructor(event: AuctionSettled) {
+    this._event = event;
+  }
+
+  get strategyKey(): Bytes {
+    return this._event.parameters[0].value.toBytes();
+  }
+
+  get settledBy(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get maker(): Address {
+    return this._event.parameters[2].value.toAddress();
+  }
+
+  get outWad(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
+  }
+
+  get amountInWad(): BigInt {
+    return this._event.parameters[4].value.toBigInt();
+  }
+
+  get surplusWad(): BigInt {
+    return this._event.parameters[5].value.toBigInt();
+  }
+
+  get payToResolverWad(): BigInt {
+    return this._event.parameters[6].value.toBigInt();
+  }
+
+  get retainToLPWad(): BigInt {
+    return this._event.parameters[7].value.toBigInt();
+  }
+}
+
 export class FeeControllerUpdated extends ethereum.Event {
   get params(): FeeControllerUpdated__Params {
     return new FeeControllerUpdated__Params(this);

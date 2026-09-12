@@ -14,7 +14,7 @@ contract RuntimeVersionTest is RiptideForkBase {
     function _shipRebalance() internal returns (ISwapVM.Order memory order) {
         strategy.feeProvider = address(provider);
         order =
-            rebalanceRouter.buildRebalanceOrder(maker, strategy, uint40(block.timestamp + 1 hours), 1e18, resolver, true);
+            rebalanceRouter.buildRebalanceOrder(maker, strategy, uint40(block.timestamp + 1 hours), 1e18, true);
         orderHash = rebalanceRouter.hash(order);
         strategyKey = RiptideStrategyCodec.runtimeStrategyKey(maker, strategy.salt);
 

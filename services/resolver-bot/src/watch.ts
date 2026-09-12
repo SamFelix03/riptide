@@ -11,7 +11,6 @@ import {
   isStrategyNotActiveError,
   listActiveStrategyKeys,
   demoMarketId,
-  demoResolverAddress,
   resolveFeedAddress,
   strategyToContractTuple,
 } from "@riptide/solver-core";
@@ -110,7 +109,7 @@ export async function scanOpportunities(
 
     let preview;
     try {
-      [preview] = await quoter.read.previewRebalance([toStrategyTuple(strategy), outWad, demoResolverAddress(manifest)]);
+      [preview] = await quoter.read.previewRebalance([toStrategyTuple(strategy), outWad]);
     } catch (err) {
       if (isNoSurplusError(err) || isInactiveAquaStrategyError(err) || isAuctionWindowClosedError(err)) continue;
       throw err;

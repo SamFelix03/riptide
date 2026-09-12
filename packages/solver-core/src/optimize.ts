@@ -11,13 +11,28 @@ export type OptimizeInput = {
   refreshedAt: number;
 };
 
+/**
+ * Reserves the on-chain AMM actually prices against.
+ *
+ * The swap program runs stock `XYCSwap`, which reads the strategy's live Aqua allowance
+ * balances - not the `reserveBaseWad`/`reserveQuoteWad` committed in the order bytes.
+ * Those committed values are the *initial* inventory and stay frozen for the life of the
+ * order (they are part of the strategy hash), so they drift further from reality with
+ * every fill. Quoting off them makes the router's output overshoot what the chain pays
+ * and trips `RiptideSlippageExceeded` on aggregate routes.
+ */
+function poolReserves(c: StrategyCandidate): { reserveIn: bigint; reserveOut: bigint } {
+  return { reserveIn: c.aquaQuote, reserveOut: c.aquaBase };
+}
+
 function maxInput(candidate: StrategyCandidate): bigint {
   return candidate.aquaQuote;
 }
 
 function maxOutput(candidate: StrategyCandidate): bigint {
   const feeBps = BigInt(candidate.feeBps);
-  return cpmmExactIn(candidate.reserveQuoteWad, candidate.reserveBaseWad, candidate.aquaQuote, feeBps);
+  const { reserveIn, reserveOut } = poolReserves(candidate);
+  return cpmmExactIn(reserveIn, reserveOut, candidate.aquaQuote, feeBps);
 }
 
 function buildFills(
@@ -36,8 +51,7 @@ function buildFills(
     const amt = amounts[i]!;
     if (amt === 0n) continue;
 
-    const reserveIn = c.reserveQuoteWad;
-    const reserveOut = c.reserveBaseWad;
+    const { reserveIn, reserveOut } = poolReserves(c);
     const feeBps = BigInt(c.feeBps);
     let amountIn: bigint;
     let amountOut: bigint;
@@ -98,7 +112,8 @@ function optimizeExactIn(candidates: StrategyCandidate[], totalIn: bigint, index
     for (let i = 0; i < active.length; i++) {
       const c = active[i]!;
       if (amounts[i]! >= caps[i]!) continue;
-      const out = cpmmExactIn(c.reserveQuoteWad, c.reserveBaseWad, 1n, BigInt(c.feeBps));
+      const { reserveIn, reserveOut } = poolReserves(c);
+      const out = cpmmExactIn(reserveIn, reserveOut, 1n, BigInt(c.feeBps));
       if (out > bestOut) {
         bestOut = out;
         bestIdx = i;
@@ -137,7 +152,8 @@ function optimizeExactOut(candidates: StrategyCandidate[], totalOut: bigint, ind
       const c = active[i]!;
       const cur = amounts[i]!;
       if (cur >= outCaps[i]!) continue;
-      const m = marginalInPerOut(c.reserveQuoteWad, c.reserveBaseWad, cur + 1n, BigInt(c.feeBps));
+      const { reserveIn, reserveOut } = poolReserves(c);
+      const m = marginalInPerOut(reserveIn, reserveOut, cur + 1n, BigInt(c.feeBps));
       if (m >= UNSERVICEABLE_MARGINAL) continue;
       if (bestMarginal === null || m < bestMarginal) {
         bestMarginal = m;
@@ -177,7 +193,8 @@ export function verifyOptimizedRoute(route: OptimizedRoute, candidates: Strategy
   for (const fill of route.fills) {
     const c = candidates.find((x) => x.id === fill.candidateId);
     if (!c) throw new Error(`unknown fill candidate ${fill.candidateId}`);
-    const q = quoteAt(c.reserveQuoteWad, c.reserveBaseWad, BigInt(c.feeBps), route.kind, fill.amount);
+    const { reserveIn, reserveOut } = poolReserves(c);
+    const q = quoteAt(reserveIn, reserveOut, BigInt(c.feeBps), route.kind, fill.amount);
     if (route.kind === QuoteKind.ExactInput) {
       if (q.amountOut !== fill.amountOut) throw new Error("amountOut mismatch");
     } else if (q.amountIn !== fill.amountIn) {

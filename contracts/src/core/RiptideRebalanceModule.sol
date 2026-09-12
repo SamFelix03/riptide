@@ -105,7 +105,6 @@ contract RiptideRebalanceModule {
         RiptideTypes.Strategy calldata strategy,
         uint40 deadline,
         uint256 outWad,
-        address resolver,
         bool useAuctionBalanceIn,
         uint40 auctionStart
     ) external view returns (ISwapVM.Order memory order) {
@@ -117,7 +116,7 @@ contract RiptideRebalanceModule {
             KERNEL.staleBaselineIn(outWad, s.reserveBaseWad, s.reserveQuoteWad, RiptideTypes.QuoteKind.ExactOutput);
         bytes memory data = bytes.concat(
             RiptideStrategyCodec.encode(s),
-            _buildRebalanceProgram(s, deadline, staleInWad, resolver, useAuctionBalanceIn, auctionStart)
+            _buildRebalanceProgram(s, deadline, staleInWad, useAuctionBalanceIn, auctionStart)
         );
         order = RiptideMakerTraits.buildOrder(maker, data);
     }
@@ -131,14 +130,19 @@ contract RiptideRebalanceModule {
         uint256 balanceIn,
         uint256 balanceOut,
         bool isStatic,
+        address taker,
         bytes calldata args
     ) external {
         if (msg.sender != ROUTER) revert RiptideErrors.RiptideUnauthorizedResolver(msg.sender);
-        if (args.length < 44) revert RiptideErrors.RiptideInvalidEncodingLength(args.length, 44);
+        if (args.length < 24) revert RiptideErrors.RiptideInvalidEncodingLength(args.length, 24);
 
         uint64 beta = uint64(bytes8(args[0:8]));
         uint128 staleInWad = uint128(bytes16(args[8:24]));
-        address resolver = address(bytes20(args[24:44]));
+        // The rebate goes to whoever is settling, taken from the VM context rather than
+        // baked into the order. Encoding a resolver into the program made the order hash
+        // depend on it, so only one pre-designated address could ever settle - which
+        // contradicted the permissionless settlement the settler is written for.
+        address resolver = taker;
 
         bytes32 strategyKey = _orderStrategyKeys[orderHash];
         if (strategyKey == bytes32(0)) {
@@ -198,12 +202,11 @@ contract RiptideRebalanceModule {
         RiptideTypes.Strategy memory s,
         uint40 deadline,
         uint256 staleInWad,
-        address resolver,
         bool useAuctionBalanceIn,
         uint40 auctionStart
     ) internal pure returns (bytes memory program) {
         bytes memory auctionArgs = RiptideAuctionArgs.build(auctionStart, s.auction.duration, s.auction.decay);
-        bytes memory rebalanceArgs = abi.encodePacked(s.auction.beta, uint128(staleInWad), resolver);
+        bytes memory rebalanceArgs = abi.encodePacked(s.auction.beta, uint128(staleInWad));
 
         program = bytes.concat(
             _encodeInstruction(RiptideConstants.OP_DEADLINE, ControlsArgsBuilder.buildDeadline(deadline)),

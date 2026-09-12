@@ -10,6 +10,52 @@ import {
   BigInt,
 } from "@graphprotocol/graph-ts";
 
+export class AuctionSettled extends ethereum.Event {
+  get params(): AuctionSettled__Params {
+    return new AuctionSettled__Params(this);
+  }
+}
+
+export class AuctionSettled__Params {
+  _event: AuctionSettled;
+
+  constructor(event: AuctionSettled) {
+    this._event = event;
+  }
+
+  get strategyKey(): Bytes {
+    return this._event.parameters[0].value.toBytes();
+  }
+
+  get settledBy(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get maker(): Address {
+    return this._event.parameters[2].value.toAddress();
+  }
+
+  get outWad(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
+  }
+
+  get amountInWad(): BigInt {
+    return this._event.parameters[4].value.toBigInt();
+  }
+
+  get surplusWad(): BigInt {
+    return this._event.parameters[5].value.toBigInt();
+  }
+
+  get payToResolverWad(): BigInt {
+    return this._event.parameters[6].value.toBigInt();
+  }
+
+  get retainToLPWad(): BigInt {
+    return this._event.parameters[7].value.toBigInt();
+  }
+}
+
 export class EIP712DomainChanged extends ethereum.Event {
   get params(): EIP712DomainChanged__Params {
     return new EIP712DomainChanged__Params(this);
@@ -951,18 +997,16 @@ export class RiptideRebalanceRouter extends ethereum.SmartContract {
     strategy: RiptideRebalanceRouter__buildRebalanceOrderInputStrategyStruct,
     deadline: BigInt,
     outWad: BigInt,
-    resolver: Address,
     useAuctionBalanceIn: boolean,
   ): RiptideRebalanceRouter__buildRebalanceOrderResultOrderStruct {
     let result = super.call(
       "buildRebalanceOrder",
-      "buildRebalanceOrder(address,(address,address,address,uint128,uint128,(uint24,uint24,uint64,uint64,uint64,uint64,uint64,uint64),(uint64,uint16,uint64,uint16),(address,uint8,uint16),address,bytes32),uint40,uint256,address,bool):((address,uint256,bytes))",
+      "buildRebalanceOrder(address,(address,address,address,uint128,uint128,(uint24,uint24,uint64,uint64,uint64,uint64,uint64,uint64),(uint64,uint16,uint64,uint16),(address,uint8,uint16),address,bytes32),uint40,uint256,bool):((address,uint256,bytes))",
       [
         ethereum.Value.fromAddress(maker),
         ethereum.Value.fromTuple(strategy),
         ethereum.Value.fromUnsignedBigInt(deadline),
         ethereum.Value.fromUnsignedBigInt(outWad),
-        ethereum.Value.fromAddress(resolver),
         ethereum.Value.fromBoolean(useAuctionBalanceIn),
       ],
     );
@@ -977,18 +1021,16 @@ export class RiptideRebalanceRouter extends ethereum.SmartContract {
     strategy: RiptideRebalanceRouter__buildRebalanceOrderInputStrategyStruct,
     deadline: BigInt,
     outWad: BigInt,
-    resolver: Address,
     useAuctionBalanceIn: boolean,
   ): ethereum.CallResult<RiptideRebalanceRouter__buildRebalanceOrderResultOrderStruct> {
     let result = super.tryCall(
       "buildRebalanceOrder",
-      "buildRebalanceOrder(address,(address,address,address,uint128,uint128,(uint24,uint24,uint64,uint64,uint64,uint64,uint64,uint64),(uint64,uint16,uint64,uint16),(address,uint8,uint16),address,bytes32),uint40,uint256,address,bool):((address,uint256,bytes))",
+      "buildRebalanceOrder(address,(address,address,address,uint128,uint128,(uint24,uint24,uint64,uint64,uint64,uint64,uint64,uint64),(uint64,uint16,uint64,uint16),(address,uint8,uint16),address,bytes32),uint40,uint256,bool):((address,uint256,bytes))",
       [
         ethereum.Value.fromAddress(maker),
         ethereum.Value.fromTuple(strategy),
         ethereum.Value.fromUnsignedBigInt(deadline),
         ethereum.Value.fromUnsignedBigInt(outWad),
-        ethereum.Value.fromAddress(resolver),
         ethereum.Value.fromBoolean(useAuctionBalanceIn),
       ],
     );
@@ -1008,19 +1050,17 @@ export class RiptideRebalanceRouter extends ethereum.SmartContract {
     strategy: RiptideRebalanceRouter__buildRebalanceOrderWithAuctionStartInputStrategyStruct,
     deadline: BigInt,
     outWad: BigInt,
-    resolver: Address,
     useAuctionBalanceIn: boolean,
     auctionStart: BigInt,
   ): RiptideRebalanceRouter__buildRebalanceOrderWithAuctionStartResultOrderStruct {
     let result = super.call(
       "buildRebalanceOrderWithAuctionStart",
-      "buildRebalanceOrderWithAuctionStart(address,(address,address,address,uint128,uint128,(uint24,uint24,uint64,uint64,uint64,uint64,uint64,uint64),(uint64,uint16,uint64,uint16),(address,uint8,uint16),address,bytes32),uint40,uint256,address,bool,uint40):((address,uint256,bytes))",
+      "buildRebalanceOrderWithAuctionStart(address,(address,address,address,uint128,uint128,(uint24,uint24,uint64,uint64,uint64,uint64,uint64,uint64),(uint64,uint16,uint64,uint16),(address,uint8,uint16),address,bytes32),uint40,uint256,bool,uint40):((address,uint256,bytes))",
       [
         ethereum.Value.fromAddress(maker),
         ethereum.Value.fromTuple(strategy),
         ethereum.Value.fromUnsignedBigInt(deadline),
         ethereum.Value.fromUnsignedBigInt(outWad),
-        ethereum.Value.fromAddress(resolver),
         ethereum.Value.fromBoolean(useAuctionBalanceIn),
         ethereum.Value.fromUnsignedBigInt(auctionStart),
       ],
@@ -1036,19 +1076,17 @@ export class RiptideRebalanceRouter extends ethereum.SmartContract {
     strategy: RiptideRebalanceRouter__buildRebalanceOrderWithAuctionStartInputStrategyStruct,
     deadline: BigInt,
     outWad: BigInt,
-    resolver: Address,
     useAuctionBalanceIn: boolean,
     auctionStart: BigInt,
   ): ethereum.CallResult<RiptideRebalanceRouter__buildRebalanceOrderWithAuctionStartResultOrderStruct> {
     let result = super.tryCall(
       "buildRebalanceOrderWithAuctionStart",
-      "buildRebalanceOrderWithAuctionStart(address,(address,address,address,uint128,uint128,(uint24,uint24,uint64,uint64,uint64,uint64,uint64,uint64),(uint64,uint16,uint64,uint16),(address,uint8,uint16),address,bytes32),uint40,uint256,address,bool,uint40):((address,uint256,bytes))",
+      "buildRebalanceOrderWithAuctionStart(address,(address,address,address,uint128,uint128,(uint24,uint24,uint64,uint64,uint64,uint64,uint64,uint64),(uint64,uint16,uint64,uint16),(address,uint8,uint16),address,bytes32),uint40,uint256,bool,uint40):((address,uint256,bytes))",
       [
         ethereum.Value.fromAddress(maker),
         ethereum.Value.fromTuple(strategy),
         ethereum.Value.fromUnsignedBigInt(deadline),
         ethereum.Value.fromUnsignedBigInt(outWad),
-        ethereum.Value.fromAddress(resolver),
         ethereum.Value.fromBoolean(useAuctionBalanceIn),
         ethereum.Value.fromUnsignedBigInt(auctionStart),
       ],

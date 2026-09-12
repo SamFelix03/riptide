@@ -21,7 +21,6 @@ contract QuoterRebalancePreviewTest is RiptideForkBase {
             strategy,
             RiptideConstants.SWAP_ORDER_DEADLINE,
             RiptideConstants.SEED_REBALANCE_OUT_WAD,
-            address(0),
             true,
             auctionStart
         );
@@ -41,7 +40,7 @@ contract QuoterRebalancePreviewTest is RiptideForkBase {
         vm.stopPrank();
 
         (RiptideTypes.RebalanceResult memory result,) =
-            quoter.previewRebalance(strategy, RiptideConstants.SEED_REBALANCE_OUT_WAD, address(0));
+            quoter.previewRebalance(strategy, RiptideConstants.SEED_REBALANCE_OUT_WAD);
         assertGt(result.surplusWad, 0, "preview surplus");
     }
 }

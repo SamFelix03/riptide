@@ -72,7 +72,13 @@ try {
   execSync("pnpm run build", { stdio: "inherit" });
 
   const graphBin = path.join(subgraphDir, "node_modules/.bin/graph");
-  const versionLabel = process.env.GRAPH_VERSION_LABEL ?? "v0.0.1";
+  // Studio rejects a label it has already seen, so a pinned label (the default, or one
+  // left in subgraph/.env) makes every redeploy fail. Treat the configured value as a
+  // prefix and suffix the manifest's deploy block: unique per stack, stable across
+  // retries of the same stack.
+  const deployBlock = JSON.parse(fs.readFileSync(manifestPath, "utf8")).blockNumber ?? Date.now();
+  const labelPrefix = process.env.GRAPH_VERSION_LABEL ?? "v0.0.1";
+  const versionLabel = labelPrefix.endsWith(`-${deployBlock}`) ? labelPrefix : `${labelPrefix}-${deployBlock}`;
   console.log(`Deploying subgraph network=${network} slug=${slug} (RPC must be reachable by Graph Studio indexers)`);
   try {
     execFileSync(

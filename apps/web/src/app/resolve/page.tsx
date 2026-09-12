@@ -11,7 +11,7 @@ import { NetworkGuard } from "@/components/shared/NetworkGuard";
 import { Counter, PrimaryCta } from "@/components/shared/primitives";
 import { TokenBalanceReadout, TransactionStepper } from "@/components/shared/WalletComponents";
 import { TxLink } from "@/components/shared/States";
-import { formatHash, formatWad } from "@/lib/format";
+import { formatAddress, formatHash, formatWad } from "@/lib/format";
 import { useServerConfig } from "@/lib/useServerConfig";
 import { useFrontendApi } from "@/providers/FrontendApiProvider";
 import { useWallet } from "@/providers/WalletProvider";
@@ -60,7 +60,7 @@ export default function ResolvePage() {
     queryKey: ["preview", auction?.maker, auction?.strategyHash, address],
     queryFn: async () => {
       if (!auction || !address) throw new Error("no auction");
-      return api.previewRebalance(auction.maker, auction.strategyHash, SEED_REBALANCE_OUT_WAD, address);
+      return api.previewRebalance(auction.maker, auction.strategyHash, SEED_REBALANCE_OUT_WAD);
     },
     enabled: Boolean(auction && address),
   });
@@ -190,19 +190,21 @@ export default function ResolvePage() {
                       Reverse swaps within the anti-sandwich window ({auction.antiSandwichPeriod}s) are penalized.
                     </p>
                     {previewError ? <RiptideErrorDisplay error={previewError} /> : null}
+                    {quoteToken ? (
+                      <div className="balance-row" style={{ marginTop: "0.75rem" }}>
+                        {/* Settling pulls maxIn from the connected wallet (the unused part is
+                            refunded in the same transaction), so show what it holds. The plan
+                            below includes the approval step. */}
+                        <TokenBalanceReadout token={quoteToken} symbol="RQUOTE" />
+                      </div>
+                    ) : null}
                     <div style={{ marginTop: "1rem" }}>
                       <PrimaryCta disabled={!preview.data?.profitable} onClick={() => void handleSettle()}>
                         Settle rebalance
                       </PrimaryCta>
                     </div>
-                    <TransactionStepper
-                      plan={settlePlan}
-                      successLabel="Rebalance settled"
-                      onExecute={async () => {
-                        if (!settlePlan?.sendable) return;
-                        return writeContract({ address: settlePlan.to, data: settlePlan.data });
-                      }}
-                    />
+                    {/* No onExecute: the plan is approve + settleRebalance, walked in order. */}
+                    <TransactionStepper plan={settlePlan} successLabel="Rebalance settled" />
                   </Card>
                 ) : !hasAuctions ? (
                   <Card title="Settle ticket">
@@ -249,9 +251,15 @@ export default function ResolvePage() {
                     <StatTile compact label="Retained to LPs" value={formatWad(totalRetainedToLP)} />
                   </div>
                   <DataTable
-                    headers={["Block", "Surplus", "Resolver pay", "LP retain", "Tx"]}
+                    headers={["Block", "Settled by", "Surplus", "Resolver pay", "LP retain", "Tx"]}
                     rows={resolverPnl.slice(0, 20).map((e) => [
                       e.blockNumber,
+                      // The wallet that funded the settle, recovered from the settler's own
+                      // receipt — the router event only names the VM taker.
+                      <span key={`${e.id}-by`} className={e.settledBy?.toLowerCase() === address?.toLowerCase() ? "you" : undefined}>
+                        {formatAddress(e.settledBy)}
+                        {e.settledBy?.toLowerCase() === address?.toLowerCase() ? " (you)" : ""}
+                      </span>,
                       formatWad(e.surplusWad),
                       formatWad(e.payToResolver),
                       formatWad(e.retainToLP),

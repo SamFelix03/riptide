@@ -19,6 +19,7 @@ type ApiMethod =
   | "getRecaptureStats"
   | "streamEvents"
   | "listRoutes"
+  | "listResolvers"
   | "getFreshness";
 
 export class ApiClient {
@@ -66,9 +67,8 @@ export class ApiClient {
     maker: Parameters<RiptideFrontendApi["previewRebalance"]>[0],
     strategy: Parameters<RiptideFrontendApi["previewRebalance"]>[1],
     outWad: Parameters<RiptideFrontendApi["previewRebalance"]>[2],
-    resolver?: Parameters<RiptideFrontendApi["previewRebalance"]>[3],
   ) {
-    return this.call("previewRebalance", [maker, strategy, outWad, resolver]);
+    return this.call("previewRebalance", [maker, strategy, outWad]);
   }
   buildSettleRebalance(
     maker: Parameters<RiptideFrontendApi["buildSettleRebalance"]>[0],
@@ -98,6 +98,9 @@ export class ApiClient {
   listRoutes(limit = 20) {
     return this.call("listRoutes", [limit]);
   }
+  listResolvers(limit = 25) {
+    return this.call("listResolvers", [limit]);
+  }
 
   streamEvents(filter: Parameters<RiptideFrontendApi["streamEvents"]>[0]) {
     return this.call("streamEvents", [filter]);
@@ -107,7 +110,7 @@ export class ApiClient {
   }
 }
 
-export async function simulateTxPlanRemote(txPlan: { to: string; data: string }) {
+export async function simulateTxPlanRemote(txPlan: { to: string; data: string; from?: string }) {
   const res = await fetch("/api/riptide/simulate", {
     method: "POST",
     headers: { "content-type": "application/json" },

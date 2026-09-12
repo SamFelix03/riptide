@@ -17,7 +17,7 @@ contract V5DeadlineFirstTest is RiptideForkBase {
     function _shipRebalance(uint40 deadline) internal returns (ISwapVM.Order memory order) {
         strategy.feeProvider = address(provider);
         order =
-            rebalanceRouter.buildRebalanceOrder(maker, strategy, deadline, 1e18, resolver, true);
+            rebalanceRouter.buildRebalanceOrder(maker, strategy, deadline, 1e18, true);
         orderHash = rebalanceRouter.hash(order);
         strategyKey = RiptideStrategyCodec.runtimeStrategyKey(maker, strategy.salt);
 
@@ -57,7 +57,7 @@ contract V5DeadlineFirstTest is RiptideForkBase {
         RiptideTypes.Strategy memory s = strategy;
         bytes memory data = bytes.concat(
             RiptideStrategyCodec.encode(s),
-            BrokenRebalanceProgram.build(s, uint40(block.timestamp - 1), 1, resolver, true)
+            BrokenRebalanceProgram.build(s, uint40(block.timestamp - 1), 1, true)
         );
         ISwapVM.Order memory order = RiptideMakerTraits.buildOrder(maker, data);
         orderHash = rebalanceRouter.hash(order);

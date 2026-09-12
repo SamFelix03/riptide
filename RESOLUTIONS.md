@@ -236,3 +236,29 @@ Without a third-party lockfile to copy, versions were reconciled against pinned 
 | Node | `>=20` (CI: 22; local: 20.20.1) |
 | pnpm | `9.15.0` |
 | Python | `3.11+` |
+
+---
+
+## 11. The rebalance rebate recipient is the VM taker, not an order argument
+
+`SWAPVM_INTEGRATION.md` §5 and `CONTRACTS.md` §12 show the rebate recipient as the
+third field of the `RiptideRebalance` args (`uint64 beta ‖ uint128 staleInWad ‖
+address resolver`, 44 bytes) and `buildRebalanceOrder(maker, s, outWad, resolver)`.
+
+**That cannot work.** The program is part of `order.data`, and `order.data` is part of
+the strategy hash Aqua commits on `ship`. An address in the args therefore pins the
+order to one resolver: any other caller builds a different order, whose hash Aqua has
+never seen, and settlement reverts. `RiptideAuctionSettler` is documented as
+permissionless, so the two statements contradicted each other — and on a live
+deployment only the pre-designated demo resolver could settle.
+
+**Resolution:** the args are `uint64 beta ‖ uint128 staleInWad` (24 bytes, program 66
+bytes) and `RiptideRebalanceModule.execute` takes the recipient from `ctx.query.taker`,
+forwarded by the router from the VM context at execution time. `buildRebalanceOrder`
+and `previewRebalance` lost their `resolver` parameter. The settler is the VM taker, so
+it sweeps both legs — unspent quote plus the β rebate, and the bought base — back to
+`msg.sender`.
+
+Asserted by `test/fork/AuctionSettler.t.sol::test_anyAddressCanSettle`, which settles
+from an arbitrary address and checks it receives the rebate and the base while the
+previously designated resolver receives nothing.

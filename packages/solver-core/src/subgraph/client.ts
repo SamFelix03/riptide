@@ -54,6 +54,10 @@ export type FillRow = {
 
 export type RebalanceRow = {
   id: string;
+  /** VM taker credited by the router - the settler contract on the settler path. */
+  resolver: string;
+  /** The wallet that funded the settlement and kept the rebate. */
+  settledBy: string;
   retainToLPWad: string;
   payToResolverWad: string;
   surplusWad: string;
@@ -211,7 +215,7 @@ export async function queryRecentRoutes(subgraphUrl: string, first = 20): Promis
 const RECENT_REBALANCES_QUERY = `
   query RecentRebalances($first: Int!) {
     rebalances(first: $first, orderBy: timestamp, orderDirection: desc) {
-      id retainToLPWad payToResolverWad surplusWad revealedPriceWad blockNumber timestamp txHash
+      id resolver settledBy retainToLPWad payToResolverWad surplusWad revealedPriceWad blockNumber timestamp txHash
       strategy { id strategyKey }
       market { id }
     }
@@ -357,3 +361,33 @@ export function demoMarketId(chainId = 31337): string {
 }
 
 export const DEMO_MARKET_ID = demoMarketId();
+
+export type ResolverRow = {
+  id: string;
+  settlementCount: string;
+  paidToResolverWad: string;
+  retainedForLPsWad: string;
+  amountInWad: string;
+  outWad: string;
+  firstSeenTimestamp: string;
+  lastSeenTimestamp: string;
+};
+
+const RESOLVERS_QUERY = `
+  query Resolvers($first: Int!) {
+    resolvers(first: $first, orderBy: paidToResolverWad, orderDirection: desc) {
+      id settlementCount paidToResolverWad retainedForLPsWad amountInWad outWad
+      firstSeenTimestamp lastSeenTimestamp
+    }
+  }
+`;
+
+/**
+ * Per-wallet settlement attribution, aggregated from `RiptideAuctionSettler.AuctionSettled`.
+ * The router's own event names the VM taker, which is the settler contract, so this is the
+ * only place a real resolver address is recoverable.
+ */
+export async function queryResolvers(subgraphUrl: string, first = 25): Promise<ResolverRow[]> {
+  const data = await gql<{ resolvers: ResolverRow[] }>(subgraphUrl, RESOLVERS_QUERY, { first });
+  return data.resolvers;
+}
