@@ -62,8 +62,6 @@
 
 **Research** — [arXiv:2208.06046](https://arxiv.org/abs/2208.06046) ([PDF](docs/LVR_PAPER.pdf)) · [arXiv:2210.10601](https://arxiv.org/abs/2210.10601) ([PDF](docs/DIAMOND_LVR.pdf)) · [arXiv:2305.14604](https://arxiv.org/abs/2305.14604) ([PDF](docs/FEESvLVR.pdf))
 
-**Upstream** — [1inch Aqua](https://github.com/1inch/aqua) · [1inch SwapVM](https://github.com/1inch/swap-vm) · [ETHOnline 1inch track](https://ethglobal.com/events/ethonline2026/prizes)
-
 ---
 
 ## Introduction
