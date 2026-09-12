@@ -93,6 +93,12 @@ export async function scanOpenAuctions(
     const auctionStart = Number(await rebalanceRouter.read.rebalanceAuctionStart([strategyKey]));
     if (auctionStart === 0) continue;
 
+    // Skip auctions whose window has already closed. Relying on the preview call to
+    // revert is fragile - it couples this filter to a specific error selector, and a
+    // closed window is a perfectly normal state, not an error worth surfacing. Checking
+    // the clock directly also saves an RPC round trip per dead auction.
+    if (Number(block.timestamp) > auctionStart + strategy.auction.duration) continue;
+
     const strategyForQuote = strategyToContractTuple(strategy);
 
     let preview;

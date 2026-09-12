@@ -28,9 +28,12 @@ export function isAuctionWindowClosedError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return (
     msg.includes("RiptideAuctionWindowClosed") ||
+    // Thrown by RIPTIDE's own auction schedule instruction (RiptideAuctionSchedule.sol).
+    msg.includes("RiptideAuctionWindowExpired") ||
     msg.includes("DutchAuctionExpired") ||
     msg.includes("0x0ad72b41") ||
-    msg.includes("0x1f9809eb")
+    msg.includes("0x1f9809eb") ||
+    msg.includes("0x35820154")
   );
 }
 
