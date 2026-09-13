@@ -1,6 +1,6 @@
 # RIPTIDE
 
-**An automated market maker on [1inch Aqua](https://github.com/1inch/aqua) and [SwapVM](https://github.com/1inch/swap-vm) that charges for, and takes back, the money that liquidity providers normally lose to arbitrage.**
+**An automated market maker on [1inch Aqua](https://github.com/1inch/aqua) and [SwapVM](https://github.com/1inch/swap-vm) that charges a volatility-indexed fee and auctions stale-price arb back to LPs.**
 
 **[▶ Open the live app](https://riptide-web-production-77f7.up.railway.app)** · [Contracts and addresses](#deployed-addresses) · [How it actually works](#part-ii--how-it-works-under-the-hood)
 
@@ -62,17 +62,17 @@
 
 **Research** — [arXiv:2208.06046](https://arxiv.org/abs/2208.06046) ([PDF](docs/LVR_PAPER.pdf)) · [arXiv:2210.10601](https://arxiv.org/abs/2210.10601) ([PDF](docs/DIAMOND_LVR.pdf)) · [arXiv:2305.14604](https://arxiv.org/abs/2305.14604) ([PDF](docs/FEESvLVR.pdf))
 
+**Upstream** — [1inch Aqua](https://github.com/1inch/aqua) · [1inch SwapVM](https://github.com/1inch/swap-vm) · [ETHOnline 1inch track](https://ethglobal.com/events/ethonline2026/prizes)
+
 ---
 
 ## Introduction
 
-If you put money into a normal AMM pool — Uniswap, a Curve pool, anything with a fixed curve — you are running a market-making business whether you meant to or not. You quote a price. Someone trades against it. You collect a fee.
+A normal AMM — Uniswap, Curve, anything with a fixed curve — quotes a price from its reserves and collects a swap fee. That quote lags the rest of the market. When ETH moves on a CEX, the pool still quotes the old price until someone trades against it, typically within a few hundred milliseconds. The trader who does that is usually an arbitrageur, and the profit comes from the LP.
 
-The problem is that your price is always slightly out of date. The moment the real price of ETH moves on Binance, your pool is still quoting the old price. Someone notices in a few hundred milliseconds and trades against your stale quote. They make money. That money comes out of your pocket.
+This is not front-running and it is not a bug. It is **Loss-Versus-Rebalancing (LVR)**: the cost of quoting a price the pool cannot update as fast as the rest of the market. Since 2022 there has been a closed-form expression for it.
 
-This is not a bug and it is not front-running. It is the normal, permanent cost of quoting a price you cannot update fast enough. It has a name — **Loss-Versus-Rebalancing**, or LVR — and since 2022 there has been a precise formula for how much it costs you.
-
-RIPTIDE is one pool design that does two things about it: it **prices** that cost into the fee, and it **sells the right to correct the stale price** instead of letting it be taken for free.
+RIPTIDE is a constant-product pool with two extra layers: it folds that cost into the swap fee, and it auctions the right to reprice the pool when the quote is stale, instead of leaving that trade to the mempool.
 
 ---
 
@@ -83,23 +83,23 @@ Say you provide liquidity to an ETH/USDC pool. Over a year:
 - You earn trading fees from ordinary traders — people swapping because they want to swap.
 - You lose money to arbitrageurs — people swapping *only* because your price is stale.
 
-Whether you come out ahead is simply whether the first number beats the second. The 2022 LVR paper made this exact rather than vibes-based. For a constant-product pool, the rate you leak to arbitrage is:
+Whether you come out ahead is whether the first number beats the second. The 2022 LVR paper gave a closed form for the second number. For a constant-product pool, the rate paid to arbitrage is:
 
 ```
 LVR rate  =  σ² / 8   of the pool's value, per unit time
 ```
 
-where `σ` is the volatility of the asset. At 100% annualised volatility, that is **one eighth of the pool's value per year**, flowing to arbitrageurs, before you collect a single fee.
+where `σ` is the volatility of the asset. At 100% annualised volatility, that is one eighth of the pool's value per year, paid to arbitrageurs, before fees.
 
-Two things follow, and almost every AMM ignores both:
+Two consequences:
 
-1. **A fixed fee is the wrong instrument.** Your cost is proportional to `σ²`, which moves constantly. A flat 30 bps fee overcharges traders on quiet days and badly undercharges on volatile ones — exactly when you need the money.
+1. **A fixed fee does not match the cost.** LVR scales with `σ²`. A flat 30 bps overcharges on quiet days and undercharges on volatile ones.
 
-2. **The arbitrage profit is not a law of nature — it is an auction you are not running.** When your pool is stale, there is a known, quantifiable amount of money sitting on the table. Today it goes to whoever pays the highest priority fee. It could instead go to whoever pays *you* the most for the right to take it.
+2. **The arb profit can be auctioned instead of left to the mempool.** When the pool is stale, the size of that profit is known. Today it goes to whoever pays the highest priority fee. It can instead go to whoever pays the LP the most for the right to take the trade.
 
 ## The research we built on
 
-Three papers, all included in this repository as PDFs and audited in [`docs/SOURCES.md`](docs/SOURCES.md). Nothing in RIPTIDE's economics is invented; these supply the numbers.
+Three papers, all included in this repository as PDFs and audited in [`docs/SOURCES.md`](docs/SOURCES.md). The economics come from these; they supply the numbers.
 
 | Paper | What we take from it |
 |---|---|
@@ -115,37 +115,37 @@ Papers we deliberately did **not** use — FM-AMM, general convex CFMM routing, 
 
 ## What we built
 
-A RIPTIDE strategy is an ordinary constant-product pool — `x · y = k`, nothing exotic — with two control layers wrapped around it.
+A RIPTIDE strategy is a constant-product pool (`x · y = k`) with two extra layers: a fee that moves with volatility, and an auction for the right to reprice the pool when it is stale. The curve itself is unchanged.
 
 ### Mechanism 1 — a fee that tracks volatility
 
-The fee is not a number the maker guesses. An on-chain controller reads a live volatility estimate and steers the fee toward the break-even point where expected fee revenue covers expected LVR:
+An on-chain controller reads a live volatility estimate and moves the fee toward the break-even point where expected fee revenue covers expected LVR:
 
 ```
 break-even fee  φ*  =  (σ̂² / 8) / λ        →  clamped into [feeMin, feeMax]
                                             →  PI controller steps toward it
 ```
 
-Volatile market, higher fee. Calm market, lower fee. From a trader's point of view it is just a protocol fee that happens to be current, delivered through 1inch's existing fee instruction — **we added no new fee opcode**.
+Higher volatility, higher fee; lower volatility, lower fee. To a trader this is an ordinary protocol fee, delivered through 1inch's existing fee instruction — **no new fee opcode**.
 
 Math: [`docs/LVR_MATH.md` §4](docs/LVR_MATH.md) · Code: [`FeeController.sol`](contracts/src/libraries/FeeController.sol) and [`RiptideLvrFeeProvider.sol`](contracts/src/fees/RiptideLvrFeeProvider.sol)
 
-### Mechanism 2 — auction the stale price instead of donating it
+### Mechanism 2 — a Dutch auction for the rebalance
 
-When the external price gaps, the pool is mispriced and there is arbitrage value available. Instead of letting the mempool take it:
+When the external price moves, the pool is mispriced and there is arb value available. Instead of leaving that trade to the mempool:
 
-- The strategy opens a **declining-price Dutch auction** for the right to rebalance the pool.
-- Resolvers compete; competition drives the fill to where the resolver's margin is thin.
-- On settlement the contract measures the actual surplus `S`, pays the resolver `⌊(1−β)·S⌋` and **leaves at least `β·S` with the liquidity provider**.
-- A reverse swap immediately afterward is penalised, so nobody can sandwich the rebalance.
+- The strategy opens a declining-price Dutch auction for the right to rebalance the pool.
+- Resolvers compete on time priority, which pushes the fill toward a thin resolver margin.
+- On settlement the contract measures surplus `S`, pays the resolver `⌊(1−β)·S⌋`, and leaves at least `β·S` with the LP.
+- A reverse swap immediately afterward is penalised, so the rebalance cannot be sandwiched.
 
-With `β = 0.95`, at most about 5% of the arbitrage value leaves; the rest stays with the LP.
+With `β = 0.95`, at most about 5% of the arb value leaves; the rest stays with the LP. If `S` is not positive the trade reverts.
 
 Math: [`docs/LVR_MATH.md` §5](docs/LVR_MATH.md) · Code: [`RiptideRebalanceModule.sol`](contracts/src/core/RiptideRebalanceModule.sol), [`DiamondSplit.sol`](contracts/src/libraries/DiamondSplit.sol)
 
 ### The loop between them
 
-A resolver only bids when rebalancing is genuinely profitable, so the price it pays is a price somebody *actually put money behind*. That price is fed back into the volatility oracle, which moves the next fee target. The fee is partly calibrated by prices that were paid for rather than merely reported.
+A resolver only settles when the rebalance is profitable, so the price they pay is a traded price, not just an oracle print. That price is written into the volatility oracle and moves the next fee target.
 
 This is a design property, not a theorem, and is labelled that way everywhere it appears — [`docs/LVR_MATH.md` §6](docs/LVR_MATH.md).
 
@@ -153,16 +153,15 @@ This is a design property, not a theorem, and is labelled that way everywhere it
 
 ## Who this is for, and what they actually get
 
-**Liquidity providers / market makers — the people this is built for.**
-You keep your tokens in your own wallet. Aqua holds an allowance record, not your money, so there is no vault to trust and no LP share token. You set a fee band and a retention parameter `β`, and then two things happen automatically that don't happen in a normal pool: your fee rises when volatility rises (so you're charging more precisely when you're losing more), and when the price gaps, the profit from re-pricing your pool is auctioned and most of it comes back to you instead of going to a searcher. The [Strategy Manager](apps/web/src/app/positions/page.tsx) shows you the number that matters: cumulative value recaptured.
+**Liquidity providers / market makers.** Tokens stay in the maker's wallet. Aqua holds an allowance record, not the tokens, so there is no vault and no LP share token. The maker sets a fee band and a retention parameter `β`. The fee then rises when volatility rises, and when the price gaps, the profit from repricing the pool is auctioned, with most of it remaining with the LP. The [Strategy Manager](apps/web/src/app/positions/page.tsx) shows cumulative value recaptured.
 
-**Traders.** You get a quote where the fee and the volatility that produced it are both shown before you sign. The fee is not retroactive and not hidden. Your order is split across makers by a solver and settles atomically — if any part fails, the whole thing reverts and you keep your funds.
+**Traders.** The quote shows the applied fee and the volatility that produced it, before you sign. The fee is not retroactive and not hidden. The order is split across makers by a solver and settles atomically — if any fill fails, the whole route reverts and the taker keeps their funds.
 
-**Resolvers / searchers.** A new, legible source of flow. Instead of racing in the mempool for uncertain profit, you can see open auctions with their current price, preview your exact take `⌊(1−β)·S⌋` before committing, and settle through a permissionless entry point. If the trade has no genuine surplus, the contract refuses it — which protects you from a bad fill as much as it protects the maker.
+**Resolvers / searchers.** Open auctions list a live declining price. You can preview `⌊(1−β)·S⌋` before committing, and settle through a permissionless entry point from any wallet. If `S` is not positive the contract reverts, so a bad fill fails rather than settling at a loss.
 
-**Analysts and researchers.** Every claim in this repository is traceable. The recapture dashboard links each headline number to the on-chain event that produced it and states the indexed block, and an honesty panel marks which claims are verified on-chain versus validated by simulation.
+**Analysts and researchers.** The recapture dashboard links each headline number to the on-chain event that produced it and states the indexed block. An honesty panel marks which claims are verified on-chain versus validated by simulation.
 
-**Who this is not for:** anyone wanting a managed or hedged vault, exotic payoffs, or a new market design. RIPTIDE keeps the plain constant-product curve on purpose. Non-goals are enumerated in [`docs/PROTOCOL.md` §18](docs/PROTOCOL.md).
+**Who this is not for:** anyone wanting a managed or hedged vault, exotic payoffs, or a new market design. RIPTIDE keeps the constant-product curve on purpose. Non-goals are enumerated in [`docs/PROTOCOL.md` §18](docs/PROTOCOL.md).
 
 ---
 
