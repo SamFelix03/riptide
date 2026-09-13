@@ -1289,3 +1289,71 @@ h1.page-title,
     scroll-behavior: auto !important;
   }
 }
+
+/* Wallet cluster in the header: demo-token balances beside the connect pill. */
+.header-wallet {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.header-balances {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--elevated) 55%, transparent);
+  font-size: 0.6875rem;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.header-balance {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.header-balance .label-xs {
+  color: var(--muted-foreground);
+}
+
+.header-balance-hint {
+  color: var(--destructive);
+  font-weight: 600;
+}
+
+/* The header is tight on phones; the balances also render inside Demo tools. */
+@media (max-width: 640px) {
+  .header-balances {
+    display: none;
+  }
+}
+
+/* Landing: mint-the-demo-tokens-first notice. */
+.fund-notice {
+  border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border));
+  background: color-mix(in oklab, var(--primary) 7%, transparent);
+  border-radius: var(--radius);
+  padding: 0.8rem 1rem;
+}
+
+.fund-notice p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+}
+
+.fund-notice strong {
+  color: var(--foreground);
+}
+
+.fund-notice a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

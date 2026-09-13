@@ -13,6 +13,7 @@ import { TokenBalanceReadout, TransactionStepper } from "@/components/shared/Wal
 import { TxLink } from "@/components/shared/States";
 import { formatAddress, formatHash, formatWad } from "@/lib/format";
 import { useServerConfig } from "@/lib/useServerConfig";
+import { useBalanceGate } from "@/lib/useBalanceGate";
 import { useFrontendApi } from "@/providers/FrontendApiProvider";
 import { useWallet } from "@/providers/WalletProvider";
 
@@ -111,6 +112,15 @@ export default function ResolvePage() {
 
   const hasAuctions = Boolean(auctions.data?.length);
   const quoteToken = config.data?.demoTokens?.quote as `0x${string}` | undefined;
+  // The settler pulls maxIn of the quote token up front and refunds the unused part, so
+  // the caller has to hold the full amount before it will go through.
+  const gate = useBalanceGate([
+    {
+      token: quoteToken,
+      symbol: "RQUOTE",
+      amount: preview.data ? BigInt(preview.data.maxInWad) : undefined,
+    },
+  ]);
   const now = Math.floor(Date.now() / 1000);
   const start = auction ? (auction.auctionStart || auction.endsAt - auction.duration) : 0;
   const elapsed = auction ? now - start : 0;
@@ -199,10 +209,11 @@ export default function ResolvePage() {
                       </div>
                     ) : null}
                     <div style={{ marginTop: "1rem" }}>
-                      <PrimaryCta disabled={!preview.data?.profitable} onClick={() => void handleSettle()}>
+                      <PrimaryCta disabled={!preview.data?.profitable || !gate.ready} onClick={() => void handleSettle()}>
                         Settle rebalance
                       </PrimaryCta>
                     </div>
+                    {gate.message ? <p className="error" style={{ marginTop: "0.5rem" }}>{gate.message}</p> : null}
                     {/* No onExecute: the plan is approve + settleRebalance, walked in order. */}
                     <TransactionStepper plan={settlePlan} successLabel="Rebalance settled" />
                   </Card>

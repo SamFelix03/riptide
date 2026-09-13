@@ -258,6 +258,20 @@ export default function LandingPage() {
         </Card>
       </Reveal>
 
+      {/* Fund-first notice. RBASE/RQUOTE are mintable demo tokens; a wallet that has just
+          connected holds none, and every swap, ship and settle reverts on the transfer. */}
+      <Reveal delay={0.03}>
+        <div className="fund-notice" data-testid="fund-notice" style={{ marginTop: "1.5rem" }}>
+          <p>
+            <strong>New wallet? Fund it first.</strong> RBASE and RQUOTE are mintable demo tokens
+            on Base Sepolia — mint both from the <strong>Demo token faucet</strong> under
+            &ldquo;Demo tools&rdquo; on <Link href="/swap">Swap</Link>,{" "}
+            <Link href="/make">Make</Link> or <Link href="/resolve">Resolve</Link>. Swapping,
+            shipping and settling all move these tokens and will not go through without a balance.
+          </p>
+        </div>
+      </Reveal>
+
       {/* Live protocol stats */}
       <section className="grid grid-3" style={{ marginTop: "1.5rem" }} data-testid="live-protocol-stats">
         <Reveal delay={0.05}>

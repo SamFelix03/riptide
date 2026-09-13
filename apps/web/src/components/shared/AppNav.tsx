@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 
 import { ChainBanner } from "@/components/shared/NetworkGuard";
+import { HeaderTokenBalances } from "@/components/shared/HeaderTokenBalances";
 import { WalletConnectButton } from "@/components/shared/WalletConnectButton";
 
 const LINKS = [
@@ -52,7 +53,10 @@ export function AppNav() {
             })}
           </nav>
 
-          <WalletConnectButton />
+          <div className="header-wallet">
+            <HeaderTokenBalances />
+            <WalletConnectButton />
+          </div>
         </div>
       </header>
       <ChainBanner />

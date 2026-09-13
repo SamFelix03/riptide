@@ -16,6 +16,7 @@ import { TokenBalanceReadout, TransactionStepper } from "@/components/shared/Wal
 import { DemoTokenFaucet } from "@/components/shared/DemoTokenFaucet";
 import { simulateTxPlanRemote } from "@/lib/api-client";
 import { formatAddress, formatBps, formatFeePercent, formatFeeBpsLabel, formatWad, wadToNumber } from "@/lib/format";
+import { useBalanceGate } from "@/lib/useBalanceGate";
 import { useFrontendApi } from "@/providers/FrontendApiProvider";
 import { useWallet } from "@/providers/WalletProvider";
 
@@ -105,11 +106,21 @@ function SwapPageInner() {
     return { worst: worst.toString(), impactBps };
   }, [fills]);
 
+  // The executor pulls the quote token from the payer for both kinds; exact-out pulls
+  // whatever the quote says the fill will cost.
+  const gate = useBalanceGate([
+    {
+      token: market?.quoteToken,
+      symbol: market?.quoteSymbol ?? "quote",
+      amount: kind === "ExactInput" ? amount : quote.data ? BigInt(quote.data.amountIn) : undefined,
+    },
+  ]);
+
   const receiveWad = quote.data
     ? (kind === "ExactInput" ? quote.data.amountOut : quote.data.amountIn)
     : "0";
   const receiveSymbol = market
-    ? (kind === "ExactInput" ? market.quoteSymbol : market.baseSymbol)
+    ? (kind === "ExactInput" ? market.baseSymbol : market.quoteSymbol)
     : "";
 
   return (
@@ -150,7 +161,7 @@ function SwapPageInner() {
                     label="Amount"
                     value={amount}
                     onChange={setAmount}
-                    suffix={kind === "ExactInput" ? market.baseSymbol : market.quoteSymbol}
+                    suffix={kind === "ExactInput" ? market.quoteSymbol : market.baseSymbol}
                   />
                   <HumanUnitField label="Slippage" value={slippageBps} onChange={setSlippageBps} suffix="bps" />
                   <HumanUnitField label="Deadline" value={deadlineMinutes} onChange={setDeadlineMinutes} suffix="min" />
@@ -168,10 +179,11 @@ function SwapPageInner() {
                   <TokenBalanceReadout token={market.quoteToken} symbol={market.quoteSymbol} />
                 </div>
                 <div style={{ marginTop: "1rem" }}>
-                  <PrimaryCta disabled={!address} onClick={() => void handleBuildRoute()}>
+                  <PrimaryCta disabled={!address || !gate.ready} onClick={() => void handleBuildRoute()}>
                     Build route
                   </PrimaryCta>
                 </div>
+                {gate.message ? <p className="error" style={{ marginTop: "0.5rem" }}>{gate.message}</p> : null}
                 <p className="muted atomic-note">
                   Settlement targets RiptideBatchExecutor only. If any fill fails or slippage is exceeded, the whole route reverts and you keep your funds.
                 </p>

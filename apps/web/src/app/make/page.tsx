@@ -18,6 +18,7 @@ import { PrimaryCta, Reveal } from "@/components/shared/primitives";
 import { AllowanceManager, TokenBalanceReadout, TransactionStepper } from "@/components/shared/WalletComponents";
 import { formatAddress, formatHash, formatWad } from "@/lib/format";
 import { useServerConfig } from "@/lib/useServerConfig";
+import { useBalanceGate } from "@/lib/useBalanceGate";
 import { useFrontendApi } from "@/providers/FrontendApiProvider";
 import { useWallet } from "@/providers/WalletProvider";
 
@@ -91,6 +92,12 @@ function MakePageInner() {
     feeMin, feeMax, lambda, kp, ki, iMax, sigmaMin, sigmaMax,
     beta, duration, decay, antiSandwichPeriod,
     oracleFeed, oracleDecimals, maxStaleness, feeProvider, salt,
+  ]);
+
+  // Shipping pushes both reserves into Aqua, so the maker has to hold them first.
+  const gate = useBalanceGate([
+    { token: market?.baseToken, symbol: market?.baseSymbol ?? "base", amount: reserveBaseWad },
+    { token: market?.quoteToken, symbol: market?.quoteSymbol ?? "quote", amount: reserveQuoteWad },
   ]);
 
   const feeCurve = useMemo(() => {
@@ -282,11 +289,12 @@ function MakePageInner() {
               ) : null}
 
               <PrimaryCta
-                disabled={!makerAddress || !market || !config.data || validationErrors.length > 0}
+                disabled={!makerAddress || !market || !config.data || validationErrors.length > 0 || !gate.ready}
                 onClick={() => void handleBuildShip()}
               >
                 Build ship plan
               </PrimaryCta>
+              {gate.message ? <p className="error" style={{ marginTop: "0.5rem" }}>{gate.message}</p> : null}
               <p className="muted" style={{ fontSize: "0.75rem" }}>
                 Signer {makerAddress ? formatAddress(makerAddress) : "—"}. Approves Aqua, then ships swap + rebalance legs.
               </p>

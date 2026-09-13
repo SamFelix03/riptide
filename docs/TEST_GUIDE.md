@@ -232,7 +232,19 @@ Or run the same code locally against the same live chain:
 pnpm --filter @riptide/web dev     # http://localhost:3000
 ```
 
-Connect a wallet on Base Sepolia, then mint demo tokens from the faucet in the Swap page's "Demo tools" section. The five surfaces map to the four personas:
+> **Mint first.** A wallet connecting for the first time holds no RBASE or RQUOTE, and
+> **every swap, ship and settle moves those tokens** — without a balance the ERC20 transfer
+> reverts before any RIPTIDE logic runs. Connect on Base Sepolia, then mint both from
+> **Demo tools → Demo token faucet** on `/swap`, `/make` or `/resolve`. The landing page
+> says the same thing, and the header carries your RBASE and RQUOTE balances next to the
+> wallet address.
+>
+> The app checks before it lets you sign: if the balance will not cover the action, the
+> primary button is disabled and reads back the shortfall, so nothing is wasted on a
+> transaction that would revert. Approvals are *not* a separate step — each plan adds one
+> in front when the allowance is missing.
+
+The five surfaces map to the four personas:
 
 | Page | What to try |
 |---|---|
