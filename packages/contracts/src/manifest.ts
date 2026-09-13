@@ -4,18 +4,30 @@ import { fileURLToPath } from "node:url";
 
 import { deploymentManifestSchema, type DeploymentManifest } from "./manifest.schema.js";
 
-const PACKAGE_ROOT = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(PACKAGE_ROOT, "../..");
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 
+/** Nearest ancestor of `from` that contains a `deployments` directory, or null. */
+function findRepoRoot(from: string): string | null {
+  let dir = path.resolve(from);
+  for (;;) {
+    if (fs.existsSync(path.join(dir, "deployments"))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+/**
+ * Walk up rather than counting directories. This module is imported from source under
+ * vitest (`packages/contracts/src`) and from the build under node (`packages/contracts/dist`),
+ * and consumers run it from the repo root, from a service directory and from `contracts/` —
+ * a fixed number of `..` hops is wrong for at least one of those every time.
+ */
 function resolveRepoRoot(): string {
   if (process.env.RIPTIDE_REPO_ROOT) {
     return path.resolve(process.env.RIPTIDE_REPO_ROOT);
   }
-  const fromCwd = path.resolve(process.cwd(), "../../deployments");
-  if (fs.existsSync(fromCwd)) {
-    return path.resolve(process.cwd(), "../..");
-  }
-  return REPO_ROOT;
+  return findRepoRoot(process.cwd()) ?? findRepoRoot(MODULE_DIR) ?? path.resolve(MODULE_DIR, "../..");
 }
 
 export function manifestPath(chainId: number): string {

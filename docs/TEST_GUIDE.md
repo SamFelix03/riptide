@@ -48,6 +48,12 @@ pnpm demo:reset
 That single command deploys Aqua, the full RIPTIDE stack, two demo ERC-20s and a mock Chainlink feed; seeds three strategies with different fee/auction policies; validates the manifest; skews the oracle so a rebalance auction is open; and funds the demo taker. It finishes with a summary of addresses and service URLs.
 
 ```bash
+pnpm build
+```
+
+The off-chain services in [§4.3](#43-the-loop--a-settled-auction-moves-the-next-fee) and [§5](#5-off-chain-services) run from compiled output, so build once before starting them. It has to come *after* `demo:reset`, because the TypeScript ABIs are generated from the Foundry artifacts.
+
+```bash
 # ── terminal 3 — verify ───────────────────────────────────────────────────
 cd contracts && forge test
 ```
@@ -66,14 +72,11 @@ forge test --match-contract Differential -vv    # vs the Python oracle
 forge test --match-contract Fuzz -vv            # 10,000 runs each
 ```
 
-Two suites need an RPC and are skipped otherwise:
+One suite reads a real chain and is skipped otherwise:
 
 ```bash
 # Proves RIPTIDE works against the REAL 1inch Aqua registry on Ethereum mainnet
 RPC_URL_TARGET=https://ethereum.publicnode.com forge test --match-contract Provenance -vv
-
-# Proves the auction args encoding has not drifted vs the live Base Sepolia router
-RPC_URL_BASE_SEPOLIA=https://sepolia.base.org forge test --match-contract AuctionScheduleByteParity -vv
 ```
 
 **What to look for.** Every one of the five protocol invariants (V1–V5) ships a *negative control* — a deliberately broken variant that must make the test fail. A green suite therefore means the tests can actually fail, not merely that they are silent.
@@ -99,13 +102,15 @@ These run against the chain `demo:reset` set up. Run them from `contracts/`:
 ```bash
 cd contracts
 export RPC_URL=http://127.0.0.1:8545 CHAIN_ID=31337
-FLAGS="--broadcast --rpc-url $RPC_URL --code-size-limit 100000 --legacy"
+FEED=$(python3 -c "import json;print(json.load(open('../deployments/31337.json'))['chainlinkFeed'])")
 ```
+
+`FEED` is the mock Chainlink aggregator, used in [§4.3](#43-the-loop--a-settled-auction-moves-the-next-fee). The four `forge script` flags are written out in full each time on purpose: zsh, the macOS default shell, does not word-split an unquoted `$FLAGS`, so collapsing them into a variable fails there.
 
 ### 4.1 Mechanism 1 — a swap with a volatility-indexed fee
 
 ```bash
-forge script script/batchExecute.s.sol $FLAGS
+forge script script/batchExecute.s.sol --broadcast --rpc-url $RPC_URL --code-size-limit 100000 --legacy
 ```
 
 Routes a 1 WAD exact-in swap through `RiptideBatchExecutor`. The taker pays one amount, three makers each fill a slice, and the fee applied is whatever the controller currently reports — not a constant.
@@ -124,7 +129,7 @@ Fee units are `1e7 = 100%`, so `30000` is 0.30%.
 ### 4.2 Mechanism 2 — auction the stale price, split the surplus
 
 ```bash
-forge script script/rebalance.s.sol $FLAGS
+forge script script/rebalance.s.sol --broadcast --rpc-url $RPC_URL --code-size-limit 100000 --legacy
 ```
 
 Ships a rebalance order, opens the declining-price auction, and settles it from the resolver account. It prints `payToResolver`. The β split is exact: with `β = 0.95`, the resolver receives `⌊0.05·S⌋` and **at least** `0.95·S` stays with the maker.
@@ -162,11 +167,11 @@ done
 ### 4.4 Maker lifecycle — ship and dock
 
 ```bash
-MAKER_INDEX=2 forge script script/ship.s.sol $FLAGS      # publish a strategy
+MAKER_INDEX=2 forge script script/ship.s.sol --broadcast --rpc-url $RPC_URL --code-size-limit 100000 --legacy
 
 # dock takes the strategyKEY despite the env var name
 STRATEGY_HASH=$(python3 -c "import json;print(json.load(open('../deployments/31337.json'))['seededStrategies'][2]['strategyKey'])") \
-  forge script script/dock.s.sol $FLAGS
+  forge script script/dock.s.sol --broadcast --rpc-url $RPC_URL --code-size-limit 100000 --legacy
 ```
 
 After docking, that strategy can no longer execute — Aqua rejects it at `safeBalances`, which you can confirm by re-running the batch script and seeing the route exclude it.
@@ -195,7 +200,7 @@ pnpm --filter @riptide/vol-indexer start    # :8083  publishes price observation
 pnpm liquidity-mcp:start                    # :8084  MCP tools over The Graph
 ```
 
-Each exposes `/livez` and `/readyz`. Their integration tests run against the Anvil deployment:
+Each exposes `/livez` and `/readyz`. Their integration tests run against the Anvil deployment, and they expect all three seeded pools to be active — [§4.4](#44-maker-lifecycle--ship-and-dock) docks one. Restart Anvil and re-run `pnpm demo:reset` first if you have been through §4:
 
 ```bash
 export CI=true
@@ -322,6 +327,8 @@ node tools/audit/hardcoded-addresses.mjs                      # no hardcoded add
 |---|---|
 | `EvmError: ContractSizeLimit` on deploy | Anvil started without `--code-size-limit 100000`. Stock Aqua test contracts need it. |
 | `ChainNotSeededError` from a service | Run `pnpm demo:reset` first. |
+| `MODULE_NOT_FOUND` / `dist/...` missing when starting a service | Run `pnpm build` once after `demo:reset`. Services run from compiled output. |
+| `StrategiesMustBeImmutable` from `pnpm demo:reset` | It redeploys to fixed addresses, so it needs a clean chain. Restart Anvil, then re-run it. |
 | `SafeBalancesForTokenNotInActiveStrategy` | The rebuilt order hash does not match what was shipped. Usually a changed deadline or `auctionStart` — both are baked into the order bytes. (The resolver is *not*: the rebate follows the VM taker, so anyone can settle.) |
 | `RiptideStrategyNotActive` on `previewRebalance` | Same cause: the strategy tuple you passed does not rebuild the shipped order — check `salt`, the reserves and the `feeProvider` address. |
 | `RiptideNoSurplus` | Working as intended — the auction has no surplus yet. Skew the feed, or wait for the Dutch price to decay. |

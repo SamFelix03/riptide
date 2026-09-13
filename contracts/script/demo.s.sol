@@ -12,6 +12,7 @@ import { MockChainlinkAggregator } from "../test/mocks/MockChainlinkAggregator.s
 import { RiptideDeployer } from "./RiptideDeployer.sol";
 import { ScriptConfig } from "./ScriptConfig.sol";
 import { RiptideSeedLib } from "./RiptideSeedLib.sol";
+import { RiptideConstants } from "../src/core/RiptideConstants.sol";
 
 /// @notice Orchestrator: deploy → seed → one taker swap (Mechanism 1 smoke).
 contract DemoScript is Script {
@@ -42,8 +43,11 @@ contract DemoScript is Script {
         RiptideTypes.Strategy memory strategy = ScriptConfig.strategyS2(
             maker2, m.demoBase, m.demoQuote, address(feed), m.feeProvider, bytes32(uint256(2))
         );
+        // Must be the same deadline RiptideSeedLib shipped with: the deadline is part of the
+        // program bytes, so a different one rebuilds a different order hash and Aqua has no
+        // such active strategy.
         ISwapVM.Order memory order =
-            sys.swapRouter.buildSwapOrder(maker2, strategy, uint40(block.timestamp + 7 days));
+            sys.swapRouter.buildSwapOrder(maker2, strategy, RiptideConstants.SWAP_ORDER_DEADLINE);
 
         uint256 amountIn = 1000e18;
         vm.broadcast(ScriptConfig.DEPLOYER_KEY);
