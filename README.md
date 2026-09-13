@@ -11,7 +11,7 @@
 | | |
 |---|---|
 | **Live app** | https://riptide-web-production-77f7.up.railway.app |
-| **Demo video** | _coming soon_ |
+| **Demo video** | [View Here](https://ethglobal.com/showcase/riptide-4mv92) |
 | **Network** | Base Sepolia (chain `84532`) — [explorer](https://sepolia.basescan.org) |
 | **Subgraph** | [Graph Studio endpoint](https://api.studio.thegraph.com/query/1758400/riptide/version/latest) |
 | **Deployment manifest** | [`deployments/84532.json`](deployments/84532.json) — the single source of truth for every address |
